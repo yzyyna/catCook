@@ -1,0 +1,20 @@
+{
+  "name": "catcook",
+  "version": "1.0.0",
+  "description": "cat's home cooking",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/demon3443002624/catCook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pinia": "^3.0.4",
+    "vue-i18n": "^11.2.8"
+  }
+}
