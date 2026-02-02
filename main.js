@@ -15,11 +15,14 @@ app.$mount();
 import { createSSRApp } from "vue";
 import pinia from "./stores";
 import i18n from "./locales";
+import { setI18nInstance } from "./utils/i18n";
 
 export function createApp() {
   const app = createSSRApp(App);
   app.use(pinia);
   app.use(i18n);
+
+  setI18nInstance(i18n);
 
   return {
     app,

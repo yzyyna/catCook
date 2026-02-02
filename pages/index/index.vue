@@ -1,9 +1,13 @@
 <template>
   <view class="container">
-    <view class="search-bar" @click="goToSearch">
-      <view class="search-input">
+    <view class="header-bar">
+      <view class="search-bar" @click="goToSearch">
         <text class="search-icon">🔍</text>
         <text class="search-placeholder">{{ t("search.placeholder") }}</text>
+      </view>
+      <view class="language-switch" @click="toggleLanguage">
+        <text class="lang-icon">{{ currentLanguageIcon }}</text>
+        <text class="lang-text">{{ currentLanguageName }}</text>
       </view>
     </view>
 
@@ -71,8 +75,24 @@ const currentDishes = computed(() => {
   return dataService.getDishesByCategory(currentCategoryId.value);
 });
 
+const currentLanguageInfo = computed(() => {
+  return appStore.getCurrentLanguageInfo;
+});
+
+const currentLanguageIcon = computed(() => {
+  return currentLanguageInfo.value?.flag || "🌐";
+});
+
+const currentLanguageName = computed(() => {
+  return currentLanguageInfo.value?.name || "中文";
+});
+
 const selectCategory = (id) => {
   currentCategoryId.value = id;
+};
+
+const toggleLanguage = () => {
+  appStore.toggleLanguage();
 };
 
 const goToDetail = (dish) => {
@@ -143,27 +163,51 @@ onMounted(() => {
   background-color: #f5f5f5;
 }
 
-.search-bar {
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 20rpx;
   background-color: #fff;
+  border-bottom: 1rpx solid #eee;
 }
 
-.search-input {
+.search-bar {
+  flex: 1;
   display: flex;
   align-items: center;
-  padding: 20rpx 30rpx;
+  padding: 15rpx 25rpx;
   background-color: #f5f5f5;
   border-radius: 40rpx;
+  margin-right: 20rpx;
 }
 
 .search-icon {
   font-size: 32rpx;
-  margin-right: 10rpx;
 }
 
 .search-placeholder {
   font-size: 28rpx;
   color: #999;
+}
+
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 15rpx 25rpx;
+  background-color: #f5f5f5;
+  border-radius: 40rpx;
+}
+
+.lang-icon {
+  font-size: 32rpx;
+}
+
+.lang-text {
+  font-size: 26rpx;
+  color: #ff6b6b;
+  font-weight: bold;
 }
 
 .content {

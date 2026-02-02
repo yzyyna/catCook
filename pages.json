@@ -3,7 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "家庭菜单",
+        "navigationBarTitleText": "菜单",
         "enablePullDownRefresh": true
       }
     },
@@ -28,8 +28,7 @@
     {
       "path": "pages/search/search",
       "style": {
-        "navigationBarTitleText": "搜索",
-        "navigationStyle": "custom"
+        "navigationBarTitleText": "搜索"
       }
     },
     {
