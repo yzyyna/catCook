@@ -72,12 +72,12 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAppStore } from "@/stores/app";
+import { onShow } from "@dcloudio/uni-app";
 import { dataService, storage } from "@/data";
 import { getIngredientCategoryName } from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
-const appStore = useAppStore();
 
 const cart = ref([]);
 
@@ -99,32 +99,11 @@ const groupedIngredients = computed(() => {
 
   ingredientSummary.value.forEach((ingredient) => {
     const name = ingredient.name.toLowerCase();
-    if (
-      ["番茄", "冬瓜", "豆腐", "生菜", "芒果", "生姜", "葱"].some((v) =>
-        name.includes(v),
-      )
-    ) {
+    if (matchesIngredientGroup(name, VEGETABLE_KEYWORDS)) {
       groups.vegetables.push(ingredient);
-    } else if (
-      ["五花肉", "排骨", "猪肉末", "鲈鱼", "鸡蛋"].some((v) => name.includes(v))
-    ) {
+    } else if (matchesIngredientGroup(name, MEAT_KEYWORDS)) {
       groups.meat.push(ingredient);
-    } else if (
-      [
-        "冰糖",
-        "生抽",
-        "老抽",
-        "料酒",
-        "白糖",
-        "醋",
-        "豆瓣酱",
-        "花椒粉",
-        "盐",
-        "糖",
-        "沙拉酱",
-        "蒸鱼豉油",
-      ].some((v) => name.includes(v))
-    ) {
+    } else if (matchesIngredientGroup(name, SEASONING_KEYWORDS)) {
       groups.seasonings.push(ingredient);
     } else {
       groups.others.push(ingredient);
@@ -196,6 +175,72 @@ const loadCart = () => {
 onMounted(() => {
   loadCart();
 });
+
+onShow(() => {
+  loadCart();
+  syncGlobalI18nUI();
+});
+
+const VEGETABLE_KEYWORDS = [
+  "番茄",
+  "tomato",
+  "冬瓜",
+  "winter melon",
+  "豆腐",
+  "tofu",
+  "生菜",
+  "lettuce",
+  "芒果",
+  "mango",
+  "生姜",
+  "ginger",
+  "葱",
+  "scallion",
+];
+
+const MEAT_KEYWORDS = [
+  "五花肉",
+  "pork belly",
+  "排骨",
+  "ribs",
+  "猪肉末",
+  "minced pork",
+  "鲈鱼",
+  "perch",
+  "鸡蛋",
+  "egg",
+];
+
+const SEASONING_KEYWORDS = [
+  "冰糖",
+  "rock sugar",
+  "生抽",
+  "light soy sauce",
+  "老抽",
+  "dark soy sauce",
+  "料酒",
+  "cooking wine",
+  "白糖",
+  "white sugar",
+  "醋",
+  "vinegar",
+  "豆瓣酱",
+  "doubanjiang",
+  "花椒粉",
+  "sichuan pepper",
+  "盐",
+  "salt",
+  "糖",
+  "sugar",
+  "沙拉酱",
+  "salad dressing",
+  "蒸鱼豉油",
+  "steamed fish soy sauce",
+];
+
+const matchesIngredientGroup = (name, keywords) => {
+  return keywords.some((keyword) => name.includes(keyword));
+};
 </script>
 
 <style scoped>

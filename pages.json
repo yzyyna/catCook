@@ -8,27 +8,9 @@
       }
     },
     {
-      "path": "pages/detail/detail",
-      "style": {
-        "navigationBarTitleText": "菜品详情"
-      }
-    },
-    {
       "path": "pages/cart/cart",
       "style": {
         "navigationBarTitleText": "购物车"
-      }
-    },
-    {
-      "path": "pages/shopping/shopping",
-      "style": {
-        "navigationBarTitleText": "采购清单"
-      }
-    },
-    {
-      "path": "pages/search/search",
-      "style": {
-        "navigationBarTitleText": "搜索"
       }
     },
     {
@@ -36,14 +18,58 @@
       "style": {
         "navigationBarTitleText": "我的收藏"
       }
-    },
-    {
-      "path": "pages/history/history",
-      "style": {
-        "navigationBarTitleText": "浏览历史"
-      }
     }
   ],
+  "subPackages": [
+    {
+      "root": "pkg-discover",
+      "pages": [
+        {
+          "path": "detail/detail",
+          "style": {
+            "navigationBarTitleText": "菜品详情"
+          }
+        },
+        {
+          "path": "search/search",
+          "style": {
+            "navigationBarTitleText": "搜索"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pkg-tools",
+      "pages": [
+        {
+          "path": "shopping/shopping",
+          "style": {
+            "navigationBarTitleText": "采购清单"
+          }
+        },
+        {
+          "path": "history/history",
+          "style": {
+            "navigationBarTitleText": "浏览历史"
+          }
+        }
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["pkg-discover"]
+    },
+    "pages/cart/cart": {
+      "network": "all",
+      "packages": ["pkg-tools"]
+    },
+    "pages/favorite/favorite": {
+      "network": "all",
+      "packages": ["pkg-discover"]
+    }
+  },
   "tabBar": {
     "color": "#999999",
     "selectedColor": "#FF6B6B",

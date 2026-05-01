@@ -35,15 +35,19 @@
         >
           <image class="dish-image" :src="dish.image" mode="aspectFill" />
           <view class="dish-info">
-            <text class="dish-name">{{ dish.name }}</text>
-            <text class="dish-desc">{{ dish.description }}</text>
+            <text class="dish-name">{{ getDishName(dish) }}</text>
+            <text class="dish-desc">{{ getDishDescription(dish) }}</text>
             <view class="dish-meta">
               <text class="meta-item">{{ getDifficultyLabel(dish) }}</text>
-              <text class="meta-item">{{ dish.time }}</text>
-              <text class="meta-item">{{ dish.calories }}</text>
+              <text class="meta-item">{{ getDishTime(dish) }}</text>
+              <text class="meta-item">{{ getDishCalories(dish) }}</text>
             </view>
           </view>
-          <view class="dish-actions" @click.stop="addToCart(dish)">
+          <view
+            class="dish-actions"
+            :class="{ animating: animatingCartDishId === dish.id }"
+            @click.stop="addToCart(dish)"
+          >
             <text class="add-icon">+</text>
           </view>
         </view>
@@ -60,9 +64,18 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
+import { onShow } from "@dcloudio/uni-app";
 import { useAppStore } from "@/stores/app";
 import { dataService, storage } from "@/data";
-import { getCategoryName, getDifficultyLabel } from "@/utils/i18n";
+import {
+  getCategoryName,
+  getDifficultyLabel,
+  getDishCalories,
+  getDishDescription,
+  getDishName,
+  getDishTime,
+} from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
 const appStore = useAppStore();
@@ -70,6 +83,7 @@ const appStore = useAppStore();
 const categories = ref([]);
 const currentCategoryId = ref(1);
 const cartCount = ref(0);
+const animatingCartDishId = ref(null);
 
 const currentDishes = computed(() => {
   return dataService.getDishesByCategory(currentCategoryId.value);
@@ -93,18 +107,19 @@ const selectCategory = (id) => {
 
 const toggleLanguage = () => {
   appStore.toggleLanguage();
+  syncGlobalI18nUI();
 };
 
 const goToDetail = (dish) => {
   storage.addToHistory(dish);
   uni.navigateTo({
-    url: `/pages/detail/detail?id=${dish.id}`,
+    url: `/pkg-discover/detail/detail?id=${dish.id}`,
   });
 };
 
 const goToSearch = () => {
   uni.navigateTo({
-    url: "/pages/search/search",
+    url: "/pkg-discover/search/search",
   });
 };
 
@@ -117,6 +132,7 @@ const goToCart = () => {
 const addToCart = (dish) => {
   storage.addToCart(dish);
   updateCartCount();
+  animateCartButton(dish.id);
   uni.showToast({
     title: t("cart.addedSuccess"),
     icon: "success",
@@ -149,9 +165,23 @@ const loadMore = () => {
   console.log("load more");
 };
 
+const animateCartButton = (dishId) => {
+  animatingCartDishId.value = dishId;
+  setTimeout(() => {
+    if (animatingCartDishId.value === dishId) {
+      animatingCartDishId.value = null;
+    }
+  }, 320);
+};
+
 onMounted(() => {
   categories.value = dataService.getCategories();
   updateCartCount();
+});
+
+onShow(() => {
+  updateCartCount();
+  syncGlobalI18nUI();
 });
 </script>
 
@@ -217,7 +247,8 @@ onMounted(() => {
 }
 
 .category-sidebar {
-  width: 180rpx;
+  width: 230rpx;
+  flex-shrink: 0;
   background-color: #fff;
   border-right: 1rpx solid #eee;
 }
@@ -226,8 +257,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30rpx 20rpx;
+  justify-content: center;
+  min-height: 164rpx;
+  padding: 28rpx 16rpx;
   border-bottom: 1rpx solid #f5f5f5;
+  box-sizing: border-box;
 }
 
 .category-item.active {
@@ -237,12 +271,21 @@ onMounted(() => {
 
 .category-icon {
   font-size: 48rpx;
-  margin-bottom: 10rpx;
+  margin-bottom: 12rpx;
+  flex-shrink: 0;
 }
 
 .category-name {
+  display: block;
+  width: 100%;
+  max-width: 180rpx;
+  min-height: 68rpx;
   font-size: 24rpx;
   color: #333;
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .category-item.active .category-name {
@@ -252,27 +295,33 @@ onMounted(() => {
 
 .dish-list {
   flex: 1;
+  min-width: 0;
   padding: 20rpx;
 }
 
 .dish-card {
   display: flex;
+  align-items: flex-start;
   background-color: #fff;
   border-radius: 16rpx;
   padding: 20rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .dish-image {
   width: 160rpx;
   height: 160rpx;
+  flex-shrink: 0;
   border-radius: 12rpx;
   margin-right: 20rpx;
 }
 
 .dish-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -291,11 +340,15 @@ onMounted(() => {
   margin-bottom: 10rpx;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .dish-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 20rpx;
 }
 
@@ -313,8 +366,22 @@ onMounted(() => {
   justify-content: center;
   width: 60rpx;
   height: 60rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
   background-color: #ff6b6b;
   border-radius: 50%;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+  transform: scale(1);
+  box-shadow: 0 8rpx 20rpx rgba(255, 107, 107, 0.22);
+}
+
+.dish-actions.animating {
+  transform: scale(1.16);
+  box-shadow: 0 12rpx 28rpx rgba(255, 107, 107, 0.36);
+  background-color: #ff8787;
 }
 
 .add-icon {

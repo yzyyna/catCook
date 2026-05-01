@@ -8,8 +8,8 @@
 
     <scroll-view class="content" scroll-y>
       <view class="dish-header">
-        <text class="dish-name">{{ dish.name }}</text>
-        <text class="dish-desc">{{ dish.description }}</text>
+        <text class="dish-name">{{ getDishName(dish) }}</text>
+        <text class="dish-desc">{{ getDishDescription(dish) }}</text>
       </view>
 
       <view class="dish-meta">
@@ -19,11 +19,11 @@
         </view>
         <view class="meta-item">
           <text class="meta-label">{{ t("dish.time") }}:</text>
-          <text class="meta-value">{{ dish.time }}</text>
+          <text class="meta-value">{{ getDishTime(dish) }}</text>
         </view>
         <view class="meta-item">
           <text class="meta-label">{{ t("dish.calories") }}:</text>
-          <text class="meta-value">{{ dish.calories }}</text>
+          <text class="meta-value">{{ getDishCalories(dish) }}</text>
         </view>
       </view>
 
@@ -50,19 +50,23 @@
           <text class="toggle-icon">{{ showPractice ? "▼" : "▶" }}</text>
         </view>
         <view v-if="showPractice" class="practice-content">
-          <text class="practice-text">{{ dish.practice }}</text>
+          <text class="practice-text">{{ getDishPractice(dish) }}</text>
         </view>
       </view>
     </scroll-view>
 
     <view class="bottom-bar">
-      <view class="favorite-btn" @click="toggleFavorite">
+      <view
+        class="favorite-btn"
+        :class="{ animating: favoriteAnimating }"
+        @click="toggleFavorite"
+      >
         <text class="favorite-icon">{{ isFavorite ? "❤️" : "🤍" }}</text>
         <text class="favorite-text">{{
           isFavorite ? t("dish.unfavorite") : t("dish.favorite")
         }}</text>
       </view>
-      <view class="cart-btn" @click="addToCart">
+      <view class="cart-btn" :class="{ animating: cartAnimating }" @click="addToCart">
         <text class="cart-icon">🛒</text>
         <text class="cart-text">{{ t("dish.addToCart") }}</text>
       </view>
@@ -75,25 +79,29 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAppStore } from "@/stores/app";
+import { onShow } from "@dcloudio/uni-app";
 import { dataService, storage } from "@/data";
-import { getDifficultyLabel } from "@/utils/i18n";
+import {
+  getDifficultyLabel,
+  getDishCalories,
+  getDishDescription,
+  getDishName,
+  getDishPractice,
+  getDishTime,
+} from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
-const appStore = useAppStore();
 
 const dish = ref(null);
 const dishId = ref(0);
 const showIngredients = ref(true);
 const showPractice = ref(true);
-
-const isFavorite = computed(() => {
-  if (!dish.value) return false;
-  const favorites = storage.getFavorites();
-  return favorites.some((item) => item.id === dish.value.id);
-});
+const isFavorite = ref(false);
+const favoriteAnimating = ref(false);
+const cartAnimating = ref(false);
 
 const toggleIngredients = () => {
   showIngredients.value = !showIngredients.value;
@@ -105,11 +113,12 @@ const togglePractice = () => {
 
 const toggleFavorite = () => {
   if (!dish.value) return;
+  const nextFavorite = !isFavorite.value;
   storage.toggleFavorite(dish.value);
+  isFavorite.value = nextFavorite;
+  triggerAnimation("favorite");
   uni.showToast({
-    title: isFavorite.value
-      ? t("favorite.removedSuccess")
-      : t("common.success"),
+    title: nextFavorite ? t("common.success") : t("favorite.removedSuccess"),
     icon: "success",
   });
 };
@@ -117,6 +126,7 @@ const toggleFavorite = () => {
 const addToCart = () => {
   if (!dish.value) return;
   storage.addToCart(dish.value);
+  triggerAnimation("cart");
   uni.showToast({
     title: t("cart.addedSuccess"),
     icon: "success",
@@ -125,6 +135,7 @@ const addToCart = () => {
 
 const loadDish = () => {
   dish.value = dataService.getDishById(dishId.value);
+  syncFavoriteState();
   if (!dish.value) {
     uni.showToast({
       title: t("empty.loadFailed"),
@@ -133,12 +144,42 @@ const loadDish = () => {
   }
 };
 
+const syncFavoriteState = () => {
+  if (!dish.value) {
+    isFavorite.value = false;
+    return;
+  }
+
+  const favorites = storage.getFavorites();
+  isFavorite.value = favorites.some((item) => item.id === dish.value.id);
+};
+
+const triggerAnimation = (type) => {
+  if (type === "favorite") {
+    favoriteAnimating.value = true;
+    setTimeout(() => {
+      favoriteAnimating.value = false;
+    }, 320);
+    return;
+  }
+
+  cartAnimating.value = true;
+  setTimeout(() => {
+    cartAnimating.value = false;
+  }, 320);
+};
+
 onMounted(() => {
   const pages = getCurrentPages();
   const currentPage = pages[pages.length - 1];
   const options = currentPage.options;
   dishId.value = parseInt(options.id) || 0;
   loadDish();
+});
+
+onShow(() => {
+  syncFavoriteState();
+  syncGlobalI18nUI();
 });
 </script>
 
@@ -292,6 +333,10 @@ onMounted(() => {
   padding: 20rpx;
   border: 2rpx solid #ff6b6b;
   border-radius: 12rpx;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
 }
 
 .favorite-icon {
@@ -313,6 +358,16 @@ onMounted(() => {
   padding: 20rpx;
   background-color: #ff6b6b;
   border-radius: 12rpx;
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+
+.favorite-btn.animating,
+.cart-btn.animating {
+  transform: scale(1.04);
+  box-shadow: 0 12rpx 28rpx rgba(255, 107, 107, 0.22);
 }
 
 .cart-icon {

@@ -2,6 +2,20 @@ import { useI18n } from "vue-i18n";
 
 let i18nInstance = null;
 
+function resolveLocalizedValue(value, locale = getCurrentLanguage()) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  if (value[locale] !== undefined) return value[locale];
+  if (value["zh-CN"] !== undefined) return value["zh-CN"];
+
+  const fallbackValue = Object.values(value).find(
+    (item) => item !== undefined && item !== null,
+  );
+  return fallbackValue ?? "";
+}
+
 export function setI18nInstance(instance) {
   i18nInstance = instance;
 }
@@ -30,6 +44,55 @@ export function getDifficultyLabel(dish) {
   if (dish.difficulty) return dish.difficulty;
   if (dish.difficultyKey) return t(dish.difficultyKey);
   return "";
+}
+
+export function getDishName(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.name) return resolveLocalizedValue(dish.i18n.name);
+  return dish.name || "";
+}
+
+export function getDishDescription(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.description) {
+    return resolveLocalizedValue(dish.i18n.description);
+  }
+  return dish.description || "";
+}
+
+export function getDishPractice(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.practice) return resolveLocalizedValue(dish.i18n.practice);
+  return dish.practice || "";
+}
+
+export function getDishTime(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.time) return resolveLocalizedValue(dish.i18n.time);
+  return dish.time || "";
+}
+
+export function getDishCalories(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.calories) return resolveLocalizedValue(dish.i18n.calories);
+  return dish.calories || "";
+}
+
+export function getIngredientName(ingredient) {
+  if (!ingredient) return "";
+  if (ingredient.i18n?.name) {
+    return resolveLocalizedValue(ingredient.i18n.name);
+  }
+  return ingredient.name || "";
+}
+
+export function getDishIngredients(dish) {
+  if (!dish?.ingredients) return [];
+
+  return dish.ingredients.map((ingredient) => ({
+    ...ingredient,
+    name: getIngredientName(ingredient),
+  }));
 }
 
 export function getIngredientCategoryName(category) {
@@ -77,6 +140,13 @@ export function useAppI18n() {
     locale,
     getCategoryName,
     getDifficultyLabel,
+    getDishName,
+    getDishDescription,
+    getDishPractice,
+    getDishTime,
+    getDishCalories,
+    getIngredientName,
+    getDishIngredients,
     getIngredientCategoryName,
     formatMessage,
     setLanguage,

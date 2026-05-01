@@ -1,6 +1,15 @@
 import { dishes } from "./dishes.js";
 import { categories } from "./categories.js";
 import { t } from "../utils/i18n.js";
+import {
+  getDishCalories,
+  getDishDescription,
+  getDishIngredients,
+  getDishName,
+  getDishPractice,
+  getDishTime,
+  getIngredientName,
+} from "../utils/i18n.js";
 
 const STORAGE_KEYS = {
   CART: "catcook_cart",
@@ -13,7 +22,7 @@ export const storage = {
   getCart() {
     try {
       const cart = uni.getStorageSync(STORAGE_KEYS.CART);
-      return cart ? JSON.parse(cart) : [];
+      return cart ? JSON.parse(cart).map(normalizeDishRecord) : [];
     } catch (e) {
       return [];
     }
@@ -73,7 +82,7 @@ export const storage = {
   getFavorites() {
     try {
       const favorites = uni.getStorageSync(STORAGE_KEYS.FAVORITES);
-      return favorites ? JSON.parse(favorites) : [];
+      return favorites ? JSON.parse(favorites).map(normalizeDishRecord) : [];
     } catch (e) {
       return [];
     }
@@ -107,7 +116,7 @@ export const storage = {
   getHistory() {
     try {
       const history = uni.getStorageSync(STORAGE_KEYS.HISTORY);
-      return history ? JSON.parse(history) : [];
+      return history ? JSON.parse(history).map(normalizeDishRecord) : [];
     } catch (e) {
       return [];
     }
@@ -190,22 +199,32 @@ export const dataService = {
   },
 
   getDishesByCategory(categoryId) {
-    return dishes.filter((dish) => dish.categoryId === categoryId);
+    return dishes
+      .filter((dish) => dish.categoryId === categoryId)
+      .map(localizeDish);
   },
 
   getDishById(dishId) {
-    return dishes.find((dish) => dish.id === dishId);
+    const dish = dishes.find((item) => item.id === dishId);
+    return dish ? localizeDish(dish) : null;
   },
 
   searchDishes(keyword) {
     const lowerKeyword = keyword.toLowerCase();
     return dishes.filter(
       (dish) =>
-        dish.name.toLowerCase().includes(lowerKeyword) ||
-        dish.description.toLowerCase().includes(lowerKeyword) ||
-        dish.ingredients.some((ing) =>
-          ing.name.toLowerCase().includes(lowerKeyword),
-        ),
+        [
+          dish.name,
+          getDishName(dish),
+          dish.description,
+          getDishDescription(dish),
+          dish.practice,
+          getDishPractice(dish),
+          ...dish.ingredients.map((ing) => ing.name),
+          ...dish.ingredients.map((ing) => getIngredientName(ing)),
+        ]
+          .filter(Boolean)
+          .some((text) => text.toLowerCase().includes(lowerKeyword)),
     );
   },
 
@@ -250,3 +269,24 @@ export const dataService = {
 };
 
 export { dishes, categories };
+
+function localizeDish(dish) {
+  return {
+    ...dish,
+    name: getDishName(dish),
+    description: getDishDescription(dish),
+    practice: getDishPractice(dish),
+    ingredients: getDishIngredients(dish),
+    time: getDishTime(dish),
+    calories: getDishCalories(dish),
+  };
+}
+
+function normalizeDishRecord(record) {
+  const sourceDish = dishes.find((dish) => dish.id === record.id) || record;
+  return {
+    ...sourceDish,
+    ...record,
+    ...localizeDish(sourceDish),
+  };
+}

@@ -81,6 +81,7 @@ export default {
     empty: "Cart is empty",
     emptyTip: "Add some dishes you like",
     totalCount: "{count} dishes in total",
+    selectedCount: "{count} selected",
     select: "Select",
     selected: "Selected",
     quantity: "Quantity",
@@ -89,8 +90,10 @@ export default {
     clearCart: "Clear Cart",
     clearConfirm: "Are you sure you want to clear the cart?",
     deleteConfirm: "Are you sure you want to delete this dish?",
+    deleteSelectedConfirm: "Are you sure you want to delete the selected dishes?",
     addedSuccess: "Added to cart",
     removedSuccess: "Removed from cart",
+    deletedSelectedSuccess: "Selected dishes deleted",
     clearedSuccess: "Cart cleared",
   },
   shopping: {
@@ -130,8 +133,13 @@ export default {
     empty: "No favorites yet",
     emptyTip: "Add some dishes to your favorites",
     count: "{count} dishes in total",
+    selectedCount: "{count} selected",
     removeConfirm: "Are you sure you want to remove this favorite?",
+    removeSelectedConfirm:
+      "Are you sure you want to remove the selected favorites?",
+    deleteSelected: "Delete Selected",
     removedSuccess: "Removed from favorites",
+    removedSelectedSuccess: "Selected favorites removed",
   },
   history: {
     title: "Browsing History",

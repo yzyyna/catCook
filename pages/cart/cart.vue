@@ -4,16 +4,26 @@
       <view class="cart-header">
         <text class="cart-title">{{ t("cart.title") }}</text>
         <text class="cart-count">{{
-          t("cart.totalCount", { count: totalCount })
+          selectedIds.length > 0 ? selectedCountText : cartCountText
         }}</text>
       </view>
 
       <scroll-view class="cart-list" scroll-y>
-        <view v-for="item in cart" :key="item.id" class="cart-item">
+        <view
+          v-for="item in cart"
+          :key="item.id"
+          class="cart-item"
+          :class="{ selected: isSelected(item.id) }"
+        >
+          <view class="select-box" @click="toggleItemSelection(item.id)">
+            <text class="select-box-icon">{{
+              isSelected(item.id) ? "☑️" : "☐"
+            }}</text>
+          </view>
           <image class="item-image" :src="item.image" mode="aspectFill" />
           <view class="item-info">
-            <text class="item-name">{{ item.name }}</text>
-            <text class="item-desc">{{ item.description }}</text>
+            <text class="item-name">{{ getDishName(item) }}</text>
+            <text class="item-desc">{{ getDishDescription(item) }}</text>
           </view>
           <view class="item-actions">
             <view class="quantity-control">
@@ -53,7 +63,7 @@
       <text class="empty-text">{{ t("cart.empty") }}</text>
       <text class="empty-tip">{{ t("cart.emptyTip") }}</text>
       <view class="empty-btn" @click="goToHome">
-        <text>{{ t("dish.addToCart") }}</text>
+        <text>{{ t("empty.noDataTip") }}</text>
       </view>
     </view>
   </view>
@@ -62,21 +72,41 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAppStore } from "@/stores/app";
-import { dataService, storage } from "@/data";
+import { onShow } from "@dcloudio/uni-app";
+import { storage } from "@/data";
+import { formatMessage, getDishDescription, getDishName } from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
-const appStore = useAppStore();
 
 const cart = ref([]);
-const allSelected = ref(false);
+const selectedIds = ref([]);
 
 const totalCount = computed(() => {
   return cart.value.reduce((sum, item) => sum + item.quantity, 0);
 });
 
+const allSelected = computed(() => {
+  return cart.value.length > 0 && selectedIds.value.length === cart.value.length;
+});
+
+const cartCountText = computed(() => {
+  return formatMessage(t("cart.totalCount"), {
+    count: totalCount.value,
+  });
+});
+
+const selectedCountText = computed(() => {
+  return formatMessage(t("cart.selectedCount"), {
+    count: selectedIds.value.length,
+  });
+});
+
 const loadCart = () => {
   cart.value = storage.getCart();
+  selectedIds.value = selectedIds.value.filter((id) =>
+    cart.value.some((item) => item.id === id),
+  );
 };
 
 const increaseQuantity = (item) => {
@@ -98,6 +128,8 @@ const removeFromCart = (item) => {
   uni.showModal({
     title: t("common.confirm"),
     content: t("cart.deleteConfirm"),
+    confirmText: t("common.confirm"),
+    cancelText: t("common.cancel"),
     success: (res) => {
       if (res.confirm) {
         storage.removeFromCart(item.id);
@@ -111,12 +143,30 @@ const removeFromCart = (item) => {
   });
 };
 
+const isSelected = (id) => {
+  return selectedIds.value.includes(id);
+};
+
+const toggleItemSelection = (id) => {
+  if (isSelected(id)) {
+    selectedIds.value = selectedIds.value.filter((itemId) => itemId !== id);
+    return;
+  }
+
+  selectedIds.value = [...selectedIds.value, id];
+};
+
 const toggleSelectAll = () => {
-  allSelected.value = !allSelected.value;
+  if (allSelected.value) {
+    selectedIds.value = [];
+    return;
+  }
+
+  selectedIds.value = cart.value.map((item) => item.id);
 };
 
 const deleteSelected = () => {
-  if (!allSelected.value) {
+  if (selectedIds.value.length === 0) {
     uni.showToast({
       title: t("cart.select"),
       icon: "none",
@@ -125,13 +175,19 @@ const deleteSelected = () => {
   }
   uni.showModal({
     title: t("common.confirm"),
-    content: t("cart.clearConfirm"),
+    content: t("cart.deleteSelectedConfirm"),
+    confirmText: t("common.confirm"),
+    cancelText: t("common.cancel"),
     success: (res) => {
       if (res.confirm) {
-        storage.clearCart();
+        const nextCart = cart.value.filter(
+          (item) => !selectedIds.value.includes(item.id),
+        );
+        storage.setCart(nextCart);
+        selectedIds.value = [];
         loadCart();
         uni.showToast({
-          title: t("cart.clearedSuccess"),
+          title: t("cart.deletedSelectedSuccess"),
           icon: "success",
         });
       }
@@ -148,7 +204,7 @@ const generateShoppingList = () => {
     return;
   }
   uni.navigateTo({
-    url: "/pages/shopping/shopping",
+    url: "/pkg-tools/shopping/shopping",
   });
 };
 
@@ -160,6 +216,11 @@ const goToHome = () => {
 
 onMounted(() => {
   loadCart();
+});
+
+onShow(() => {
+  loadCart();
+  syncGlobalI18nUI();
 });
 </script>
 
@@ -204,22 +265,46 @@ onMounted(() => {
 
 .cart-item {
   display: flex;
+  align-items: flex-start;
   background-color: #fff;
   border-radius: 16rpx;
   padding: 20rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cart-item.selected {
+  background-color: #fff5f5;
+  box-shadow: 0 6rpx 18rpx rgba(255, 107, 107, 0.12);
+}
+
+.select-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 160rpx;
+  flex-shrink: 0;
+  margin-right: 12rpx;
+}
+
+.select-box-icon {
+  font-size: 32rpx;
 }
 
 .item-image {
   width: 160rpx;
   height: 160rpx;
+  flex-shrink: 0;
   border-radius: 12rpx;
   margin-right: 20rpx;
 }
 
 .item-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -237,7 +322,10 @@ onMounted(() => {
   color: #999;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .item-actions {
@@ -246,12 +334,17 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 20rpx;
+  flex-shrink: 0;
+  width: 170rpx;
+  margin-left: 16rpx;
 }
 
 .quantity-control {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  justify-content: center;
+  gap: 12rpx;
+  width: 100%;
 }
 
 .quantity-btn {
@@ -274,11 +367,14 @@ onMounted(() => {
 }
 
 .delete-btn {
+  width: 100%;
   padding: 10rpx 20rpx;
   background-color: #ffecec;
   border-radius: 8rpx;
   font-size: 24rpx;
   color: #ff4757;
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .bottom-bar {

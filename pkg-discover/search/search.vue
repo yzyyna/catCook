@@ -27,11 +27,11 @@
         >
           <image class="result-image" :src="dish.image" mode="aspectFill" />
           <view class="result-info">
-            <text class="result-name">{{ dish.name }}</text>
-            <text class="result-desc">{{ dish.description }}</text>
+            <text class="result-name">{{ getDishName(dish) }}</text>
+            <text class="result-desc">{{ getDishDescription(dish) }}</text>
             <view class="result-meta">
               <text class="meta-item">{{ getDifficultyLabel(dish) }}</text>
-              <text class="meta-item">{{ dish.time }}</text>
+              <text class="meta-item">{{ getDishTime(dish) }}</text>
             </view>
           </view>
         </view>
@@ -73,14 +73,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAppStore } from "@/stores/app";
 import { dataService, storage } from "@/data";
-import { getDifficultyLabel } from "@/utils/i18n";
+import { onShow } from "@dcloudio/uni-app";
+import {
+  getDifficultyLabel,
+  getDishDescription,
+  getDishName,
+  getDishTime,
+} from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
-const appStore = useAppStore();
 
 const keyword = ref("");
 const hasSearched = ref(false);
@@ -111,7 +116,7 @@ const goBack = () => {
 const goToDetail = (dish) => {
   storage.addToHistory(dish);
   uni.navigateTo({
-    url: `/pages/detail/detail?id=${dish.id}`,
+    url: `/pkg-discover/detail/detail?id=${dish.id}`,
   });
 };
 
@@ -144,6 +149,7 @@ const clearHistory = () => {
     content: t("search.clearHistory"),
     success: (res) => {
       if (res.confirm) {
+        storage.clearSearchHistory();
         searchHistory.value = [];
         uni.showToast({
           title: t("common.success"),
@@ -156,6 +162,10 @@ const clearHistory = () => {
 
 onMounted(() => {
   searchHistory.value = storage.getSearchHistory();
+});
+
+onShow(() => {
+  syncGlobalI18nUI();
 });
 </script>
 
@@ -221,21 +231,26 @@ onMounted(() => {
 
 .result-item {
   display: flex;
+  align-items: flex-start;
   background-color: #fff;
   border-radius: 16rpx;
   padding: 20rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .result-image {
   width: 160rpx;
   height: 160rpx;
+  flex-shrink: 0;
   border-radius: 12rpx;
   margin-right: 20rpx;
 }
 
 .result-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -254,11 +269,15 @@ onMounted(() => {
   margin-bottom: 10rpx;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .result-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 15rpx;
 }
 

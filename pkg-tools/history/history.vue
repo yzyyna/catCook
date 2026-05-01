@@ -17,8 +17,8 @@
       >
         <image class="dish-image" :src="dish.image" mode="aspectFill" />
         <view class="dish-info">
-          <text class="dish-name">{{ dish.name }}</text>
-          <text class="dish-desc">{{ dish.description }}</text>
+          <text class="dish-name">{{ getDishName(dish) }}</text>
+          <text class="dish-desc">{{ getDishDescription(dish) }}</text>
           <text class="view-time">{{ formatViewTime(dish.viewTime) }}</text>
         </view>
         <view class="actions">
@@ -48,16 +48,22 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { useAppStore } from "@/stores/app";
-import { dataService, storage } from "@/data";
+import { onShow } from "@dcloudio/uni-app";
+import { storage } from "@/data";
+import { getDishDescription, getDishName } from "@/utils/i18n";
+import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
-const appStore = useAppStore();
 
 const history = ref([]);
+const favoriteIds = ref([]);
 
 const loadHistory = () => {
   history.value = storage.getHistory();
+};
+
+const loadFavorites = () => {
+  favoriteIds.value = storage.getFavorites().map((item) => item.id);
 };
 
 const formatViewTime = (timestamp) => {
@@ -85,7 +91,7 @@ const formatViewTime = (timestamp) => {
 const goToDetail = (dish) => {
   storage.addToHistory(dish);
   uni.navigateTo({
-    url: `/pages/detail/detail?id=${dish.id}`,
+    url: `/pkg-discover/detail/detail?id=${dish.id}`,
   });
 };
 
@@ -99,6 +105,7 @@ const addToCart = (dish) => {
 
 const toggleFavorite = (dish) => {
   storage.toggleFavorite(dish);
+  loadFavorites();
   uni.showToast({
     title: t("common.success"),
     icon: "success",
@@ -106,8 +113,7 @@ const toggleFavorite = (dish) => {
 };
 
 const isFavorite = (dish) => {
-  const favorites = storage.getFavorites();
-  return favorites.some((item) => item.id === dish.id);
+  return favoriteIds.value.includes(dish.id);
 };
 
 const showQuickMenu = (dish) => {
@@ -155,6 +161,13 @@ const goToHome = () => {
 
 onMounted(() => {
   loadHistory();
+  loadFavorites();
+});
+
+onShow(() => {
+  loadHistory();
+  loadFavorites();
+  syncGlobalI18nUI();
 });
 </script>
 
