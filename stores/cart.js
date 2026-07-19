@@ -1,30 +1,17 @@
 import { defineStore } from "pinia";
 import { storage } from "@/data";
 
-const CART_TAB_INDEX = 1;
-
-function syncTabBarBadge(count) {
-  try {
-    if (count > 0) {
-      uni.setTabBarBadge({ index: CART_TAB_INDEX, text: String(count) });
-    } else {
-      uni.removeTabBarBadge({ index: CART_TAB_INDEX });
-    }
-  } catch (e) {}
-}
-
 export const useCartStore = defineStore("cart", {
   state: () => ({
     items: [],
     selectedIds: [],
-    loaded: false,
   }),
   getters: {
     totalCount: (state) =>
       state.items.reduce((sum, item) => sum + item.quantity, 0),
+    selectedCount: (state) => state.selectedIds.length,
     selectedItems: (state) =>
       state.items.filter((item) => state.selectedIds.includes(item.id)),
-    selectedCount: (state) => state.selectedIds.length,
     allSelected: (state) =>
       state.items.length > 0 &&
       state.selectedIds.length === state.items.length,
@@ -36,67 +23,42 @@ export const useCartStore = defineStore("cart", {
   actions: {
     load() {
       this.items = storage.getCart();
-      const validIds = this.items.map((item) => item.id);
-      this.selectedIds = this.loaded
-        ? this.selectedIds.filter((id) => validIds.includes(id))
-        : validIds;
-      this.loaded = true;
-      syncTabBarBadge(this.totalCount);
+      // 清理已不存在的选中项
+      this.selectedIds = this.selectedIds.filter((id) =>
+        this.items.some((item) => item.id === id),
+      );
     },
-    persist() {
-      storage.setCart(this.items);
-      syncTabBarBadge(this.totalCount);
-    },
-    add(dish, quantity = 1) {
-      const existing = this.items.find((item) => item.id === dish.id);
-      if (existing) {
-        existing.quantity += quantity;
-      } else {
-        this.items.push({
-          ...dish,
-          quantity,
-          addTime: new Date().getTime(),
-        });
-      }
-      if (!this.selectedIds.includes(dish.id)) {
-        this.selectedIds.push(dish.id);
-      }
-      this.persist();
-    },
-    setQuantity(dishId, quantity) {
-      const index = this.items.findIndex((item) => item.id === dishId);
-      if (index === -1) return;
-      if (quantity <= 0) {
-        this.items.splice(index, 1);
-        this.selectedIds = this.selectedIds.filter((id) => id !== dishId);
-      } else {
-        this.items[index].quantity = quantity;
-      }
-      this.persist();
+    add(dish) {
+      storage.addToCart(dish);
+      this.load();
     },
     remove(dishId) {
-      this.items = this.items.filter((item) => item.id !== dishId);
+      storage.removeFromCart(dishId);
       this.selectedIds = this.selectedIds.filter((id) => id !== dishId);
-      this.persist();
+      this.load();
     },
     removeSelected() {
-      this.items = this.items.filter(
-        (item) => !this.selectedIds.includes(item.id),
-      );
+      this.selectedIds.forEach((id) => storage.removeFromCart(id));
       this.selectedIds = [];
-      this.persist();
+      this.load();
     },
-    toggleSelect(dishId) {
-      if (this.selectedIds.includes(dishId)) {
-        this.selectedIds = this.selectedIds.filter((id) => id !== dishId);
+    setQuantity(dishId, quantity) {
+      storage.updateCartQuantity(dishId, quantity);
+      this.load();
+    },
+    toggleSelect(id) {
+      if (this.selectedIds.includes(id)) {
+        this.selectedIds = this.selectedIds.filter((itemId) => itemId !== id);
       } else {
-        this.selectedIds = [...this.selectedIds, dishId];
+        this.selectedIds = [...this.selectedIds, id];
       }
     },
     toggleSelectAll() {
-      this.selectedIds = this.allSelected
-        ? []
-        : this.items.map((item) => item.id);
+      if (this.allSelected) {
+        this.selectedIds = [];
+      } else {
+        this.selectedIds = this.items.map((item) => item.id);
+      }
     },
   },
 });

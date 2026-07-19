@@ -86,8 +86,10 @@ const countText = computed(() =>
     : formatMessage(t("cart.totalCount"), { count: cartStore.totalCount }),
 );
 
-const generateText = computed(
-  () => `${t("cart.generateList")} (${cartStore.selectedCount})`,
+const generateText = computed(() =>
+  cartStore.selectedCount > 0
+    ? `${t("cart.generateList")} (${cartStore.selectedCount})`
+    : t("cart.generateList"),
 );
 
 const isSelected = (id) => cartStore.selectedIds.includes(id);
@@ -238,6 +240,7 @@ onShow(() => {
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
+  padding: 20rpx 24rpx calc(20rpx + constant(safe-area-inset-bottom));
   padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
   background-color: #fff;
   border-top: 1rpx solid #f0ece6;
