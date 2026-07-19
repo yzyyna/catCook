@@ -1,106 +1,113 @@
 <template>
-  <view class="container">
-    <view v-if="favorites.length > 0" class="content">
+  <view class="page">
+    <template v-if="favoritesStore.items.length > 0">
       <view class="header">
-        <text class="title">{{ t("favorite.title") }}</text>
-        <text class="count">{{
-          selectedIds.length > 0 ? selectedCountText : favoriteCountText
-        }}</text>
+        <text class="header-title">{{ t("favorite.title") }}</text>
+        <text class="header-count">{{ countText }}</text>
       </view>
 
       <scroll-view class="favorite-list" scroll-y>
-        <view
-          v-for="dish in favorites"
+        <dish-card
+          v-for="dish in favoritesStore.items"
           :key="dish.id"
-          class="favorite-item"
-          :class="{ selected: isSelected(dish.id) }"
-          @click="goToDetail(dish)"
-          @longpress="showQuickMenu(dish)"
+          :dish="dish"
+          :selected="isSelected(dish.id)"
+          @click="goToDetail"
+          @longpress="showQuickMenu"
         >
-          <view class="select-box" @click.stop="toggleItemSelection(dish.id)">
-            <text class="select-box-icon">{{
-              isSelected(dish.id) ? "☑️" : "☐"
-            }}</text>
-          </view>
-          <image class="dish-image" :src="dish.image" mode="aspectFill" />
-          <view class="dish-info">
-            <text class="dish-name">{{ getDishName(dish) }}</text>
-            <text class="dish-desc">{{ getDishDescription(dish) }}</text>
-            <view class="dish-meta">
-              <text class="meta-item">{{ getDifficultyLabel(dish) }}</text>
-              <text class="meta-item">{{ getDishTime(dish) }}</text>
+          <template #leading>
+            <view
+              class="check-circle"
+              :class="{ checked: isSelected(dish.id) }"
+              @click.stop="toggleSelect(dish.id)"
+            >
+              <text v-if="isSelected(dish.id)" class="check-mark">✓</text>
             </view>
-          </view>
-          <view class="favorite-btn" @click.stop="removeFavorite(dish)">
-            <text class="favorite-icon">❤️</text>
-          </view>
-        </view>
+          </template>
+          <template #actions>
+            <view
+              class="heart-btn"
+              :class="{ animating: animatingId === dish.id }"
+              @click.stop="removeFavorite(dish)"
+            >
+              <text class="heart-icon">♥</text>
+            </view>
+          </template>
+        </dish-card>
+        <view class="list-safe-space" />
       </scroll-view>
 
       <view class="bottom-bar">
         <view class="select-all" @click="toggleSelectAll">
-          <text class="select-icon">{{ allSelected ? "☑️" : "☐" }}</text>
-          <text class="select-text">{{ t("common.selectAll") }}</text>
-        </view>
-        <view class="action-buttons">
-          <view class="action-btn delete" @click="removeSelected">
-            <text>{{ t("favorite.deleteSelected") }}</text>
+          <view class="check-circle" :class="{ checked: allSelected }">
+            <text v-if="allSelected" class="check-mark">✓</text>
           </view>
+          <text class="select-all-text">{{ t("common.selectAll") }}</text>
+        </view>
+        <view class="delete-btn" @click="removeSelected">
+          <text class="delete-btn-text">{{ t("favorite.deleteSelected") }}</text>
         </view>
       </view>
-    </view>
+    </template>
 
-    <view v-else class="empty">
-      <text class="empty-icon">🤍</text>
-      <text class="empty-text">{{ t("favorite.empty") }}</text>
-      <text class="empty-tip">{{ t("favorite.emptyTip") }}</text>
-      <view class="empty-btn" @click="goToHome">
-        <text>{{ t("empty.noDataTip") }}</text>
-      </view>
-    </view>
+    <empty-state
+      v-else
+      icon="🤍"
+      :title="t('favorite.empty')"
+      :tip="t('favorite.emptyTip')"
+      :button-text="t('empty.noDataTip')"
+      @action="goToHome"
+    />
   </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { onShow } from "@dcloudio/uni-app";
+import { useFavoritesStore } from "@/stores/favorites";
+import { useCartStore } from "@/stores/cart";
 import { storage } from "@/data";
-import {
-  formatMessage,
-  getDifficultyLabel,
-  getDishDescription,
-  getDishName,
-  getDishTime,
-} from "@/utils/i18n";
+import { formatMessage } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const favoritesStore = useFavoritesStore();
+const cartStore = useCartStore();
 
-const favorites = ref([]);
 const selectedIds = ref([]);
-const favoriteCountText = computed(() => {
-  return formatMessage(t("favorite.count"), {
-    count: favorites.value.length,
-  });
-});
-const selectedCountText = computed(() => {
-  return formatMessage(t("favorite.selectedCount"), {
-    count: selectedIds.value.length,
-  });
-});
-const allSelected = computed(() => {
-  return (
-    favorites.value.length > 0 &&
-    selectedIds.value.length === favorites.value.length
-  );
-});
+const animatingId = ref(null);
 
-const loadFavorites = () => {
-  favorites.value = storage.getFavorites();
-  selectedIds.value = selectedIds.value.filter((id) =>
-    favorites.value.some((item) => item.id === id),
-  );
+const countText = computed(() =>
+  selectedIds.value.length > 0
+    ? formatMessage(t("favorite.selectedCount"), {
+        count: selectedIds.value.length,
+      })
+    : formatMessage(t("favorite.count"), {
+        count: favoritesStore.items.length,
+      }),
+);
+
+const allSelected = computed(
+  () =>
+    favoritesStore.items.length > 0 &&
+    selectedIds.value.length === favoritesStore.items.length,
+);
+
+const isSelected = (id) => selectedIds.value.includes(id);
+
+const toggleSelect = (id) => {
+  if (isSelected(id)) {
+    selectedIds.value = selectedIds.value.filter((itemId) => itemId !== id);
+  } else {
+    selectedIds.value = [...selectedIds.value, id];
+  }
+};
+
+const toggleSelectAll = () => {
+  selectedIds.value = allSelected.value
+    ? []
+    : favoritesStore.items.map((item) => item.id);
 };
 
 const goToDetail = (dish) => {
@@ -118,8 +125,8 @@ const removeFavorite = (dish) => {
     cancelText: t("common.cancel"),
     success: (res) => {
       if (res.confirm) {
-        storage.toggleFavorite(dish);
-        loadFavorites();
+        favoritesStore.toggle(dish);
+        selectedIds.value = selectedIds.value.filter((id) => id !== dish.id);
         uni.showToast({
           title: t("favorite.removedSuccess"),
           icon: "success",
@@ -129,37 +136,11 @@ const removeFavorite = (dish) => {
   });
 };
 
-const isSelected = (id) => {
-  return selectedIds.value.includes(id);
-};
-
-const toggleItemSelection = (id) => {
-  if (isSelected(id)) {
-    selectedIds.value = selectedIds.value.filter((itemId) => itemId !== id);
-    return;
-  }
-
-  selectedIds.value = [...selectedIds.value, id];
-};
-
-const toggleSelectAll = () => {
-  if (allSelected.value) {
-    selectedIds.value = [];
-    return;
-  }
-
-  selectedIds.value = favorites.value.map((item) => item.id);
-};
-
 const removeSelected = () => {
   if (selectedIds.value.length === 0) {
-    uni.showToast({
-      title: t("cart.select"),
-      icon: "none",
-    });
+    uni.showToast({ title: t("cart.select"), icon: "none" });
     return;
   }
-
   uni.showModal({
     title: t("common.confirm"),
     content: t("favorite.removeSelectedConfirm"),
@@ -167,12 +148,8 @@ const removeSelected = () => {
     cancelText: t("common.cancel"),
     success: (res) => {
       if (res.confirm) {
-        const nextFavorites = favorites.value.filter(
-          (item) => !selectedIds.value.includes(item.id),
-        );
-        storage.setFavorites(nextFavorites);
+        favoritesStore.removeMany(selectedIds.value);
         selectedIds.value = [];
-        loadFavorites();
         uni.showToast({
           title: t("favorite.removedSelectedSuccess"),
           icon: "success",
@@ -187,11 +164,8 @@ const showQuickMenu = (dish) => {
     itemList: [t("dish.addToCart"), t("dish.unfavorite")],
     success: (res) => {
       if (res.tapIndex === 0) {
-        storage.addToCart(dish);
-        uni.showToast({
-          title: t("cart.addedSuccess"),
-          icon: "success",
-        });
+        cartStore.add(dish);
+        uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
       } else if (res.tapIndex === 1) {
         removeFavorite(dish);
       }
@@ -205,158 +179,100 @@ const goToHome = () => {
   });
 };
 
-onMounted(() => {
-  loadFavorites();
-});
-
 onShow(() => {
-  loadFavorites();
+  favoritesStore.load();
   syncGlobalI18nUI();
 });
 </script>
 
 <style scoped>
-.container {
+.page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  background-color: var(--bg);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30rpx;
-  background-color: #fff;
-  border-bottom: 1rpx solid #eee;
+  padding: 28rpx 28rpx 16rpx;
 }
 
-.title {
+.header-title {
   font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
-.count {
-  font-size: 26rpx;
-  color: #ff6b6b;
+.header-count {
+  font-size: 25rpx;
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .favorite-list {
   flex: 1;
-  padding: 20rpx;
+  padding: 8rpx 24rpx 0;
 }
 
-.favorite-item {
-  display: flex;
-  align-items: flex-start;
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.favorite-item.selected {
-  background-color: #fff5f5;
-  box-shadow: 0 6rpx 18rpx rgba(255, 107, 107, 0.12);
-}
-
-.select-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48rpx;
-  height: 160rpx;
-  flex-shrink: 0;
-  margin-right: 12rpx;
-}
-
-.select-box-icon {
-  font-size: 32rpx;
-}
-
-.dish-image {
-  width: 160rpx;
-  height: 160rpx;
-  flex-shrink: 0;
-  border-radius: 12rpx;
-  margin-right: 20rpx;
-}
-
-.dish-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.dish-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.dish-desc {
-  font-size: 24rpx;
-  color: #666;
-  margin-bottom: 10rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-word;
-}
-
-.dish-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15rpx;
-}
-
-.meta-item {
-  font-size: 22rpx;
-  color: #999;
-  padding: 4rpx 12rpx;
-  background-color: #f5f5f5;
-  border-radius: 8rpx;
-}
-
-.favorite-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60rpx;
-  height: 60rpx;
-  flex-shrink: 0;
-  background-color: #ffecec;
+.check-circle {
+  width: 42rpx;
+  height: 42rpx;
   border-radius: 50%;
+  border: 3rpx solid #d8d2cc;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.favorite-icon {
+.check-circle.checked {
+  border-color: transparent;
+  background: var(--gradient-primary);
+}
+
+.check-mark {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.heart-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background-color: #fff0ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.heart-btn.animating {
+  transform: scale(1.15);
+}
+
+.heart-icon {
   font-size: 32rpx;
+  color: var(--primary);
+}
+
+.list-safe-space {
+  height: 40rpx;
 }
 
 .bottom-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20rpx;
-  padding: 24rpx 30rpx calc(24rpx + env(safe-area-inset-bottom));
+  gap: 16rpx;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
   background-color: #fff;
-  border-top: 1rpx solid #eee;
+  border-top: 1rpx solid #f0ece6;
 }
 
 .select-all {
@@ -366,69 +282,20 @@ onShow(() => {
   flex-shrink: 0;
 }
 
-.select-icon {
-  font-size: 30rpx;
-}
-
-.select-text {
+.select-all-text {
   font-size: 26rpx;
-  color: #666;
+  color: var(--text-normal);
 }
 
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  flex: 1;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 220rpx;
-  padding: 18rpx 28rpx;
+.delete-btn {
+  flex-shrink: 0;
+  padding: 16rpx 36rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  box-sizing: border-box;
+  background-color: #f7f3ef;
 }
 
-.action-btn.delete {
-  background-color: #ffecec;
-  color: #ff4757;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  padding: 0 60rpx;
-}
-
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 40rpx;
-}
-
-.empty-text {
-  font-size: 32rpx;
-  color: #333;
-  margin-bottom: 20rpx;
-}
-
-.empty-tip {
-  font-size: 26rpx;
-  color: #999;
-  margin-bottom: 60rpx;
-}
-
-.empty-btn {
-  padding: 20rpx 60rpx;
-  background-color: #ff6b6b;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  color: #fff;
-  font-weight: bold;
+.delete-btn-text {
+  font-size: 25rpx;
+  color: var(--text-weak);
 }
 </style>

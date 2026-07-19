@@ -47,6 +47,13 @@ export default {
     cart: "购物车",
     favorite: "收藏",
   },
+  home: {
+    greeting: "今天想吃点什么？",
+    subGreeting: "和家人一起，选好每一餐",
+    todayPick: "今日推荐",
+    recentViewed: "最近浏览",
+    checkout: "去生成清单",
+  },
   category: {
     homeCooking: "家常菜",
     meat: "肉类",
@@ -117,6 +124,8 @@ export default {
     copyText: "复制文本",
     empty: "暂无采购清单",
     emptyTip: "请先在购物车中选择菜品",
+    purchased: "已购",
+    progress: "已购 {done}/{total}",
   },
   search: {
     placeholder: "搜索菜品、食材、做法...",

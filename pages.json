@@ -99,8 +99,8 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "家庭菜单",
-    "navigationBarBackgroundColor": "#FFFFFF",
-    "backgroundColor": "#F5F5F5"
+    "navigationBarBackgroundColor": "#F7F6F3",
+    "backgroundColor": "#F7F6F3"
   },
   "uniIdRouter": {}
 }

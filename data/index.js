@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
   FAVORITES: "catcook_favorites",
   HISTORY: "catcook_history",
   SEARCH_HISTORY: "catcook_search_history",
+  SHOPPING_CHECKED: "catcook_shopping_checked",
 };
 
 export const storage = {
@@ -191,6 +192,27 @@ export const storage = {
       return false;
     }
   },
+
+  getShoppingChecked() {
+    try {
+      const checked = uni.getStorageSync(STORAGE_KEYS.SHOPPING_CHECKED);
+      return checked ? JSON.parse(checked) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  setShoppingChecked(checkedKeys) {
+    try {
+      uni.setStorageSync(
+        STORAGE_KEYS.SHOPPING_CHECKED,
+        JSON.stringify(checkedKeys),
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
 };
 
 export const dataService = {
@@ -233,14 +255,16 @@ export const dataService = {
 
     cartItems.forEach((item) => {
       item.ingredients.forEach((ingredient) => {
-        const key = ingredient.name;
+        const key = ingredient.key || ingredient.name;
         if (ingredientMap.has(key)) {
           const existing = ingredientMap.get(key);
           existing.amounts.push(ingredient.amount);
           existing.dishes.push(item.name);
         } else {
           ingredientMap.set(key, {
+            key,
             name: ingredient.name,
+            category: ingredient.category || "other",
             amounts: [ingredient.amount],
             dishes: [item.name],
           });

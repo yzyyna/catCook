@@ -47,6 +47,13 @@ export default {
     cart: "Cart",
     favorite: "Favorites",
   },
+  home: {
+    greeting: "What are we cooking today?",
+    subGreeting: "Plan every meal together as a family",
+    todayPick: "Today's Pick",
+    recentViewed: "Recently Viewed",
+    checkout: "Make List",
+  },
   category: {
     homeCooking: "Home Cooking",
     meat: "Meat",
@@ -118,6 +125,8 @@ export default {
     copyText: "Copy Text",
     empty: "No shopping list",
     emptyTip: "Please select dishes in the cart first",
+    purchased: "Purchased",
+    progress: "{done}/{total} purchased",
   },
   search: {
     placeholder: "Search dishes, ingredients, practices...",

@@ -134,6 +134,39 @@
 - 中部：历史列表（时间倒序）
 - 每条记录显示：菜品缩略图、名称、浏览时间
 
+## 架构设计（2026-07 重构）
+
+### 设计令牌（App.vue 全局 CSS 变量）
+
+- 主色 `--primary: #FF6B6B`，渐变 `--gradient-primary: 135deg #FF6B6B→#FF8E53`
+- 辅色 `--accent: #4ECDC4`；背景 `--bg: #F7F6F3`（米白）；卡片白
+- 文字 `#2A2A2A / #5A5A5A / #8A8A8A / #BFBFBF` 四级
+- 卡片圆角 20rpx、柔和阴影；所有文本容器 `min-width:0` + 省略/clamp，保证中英文切换不溢出
+
+### 状态层（Pinia 为运行时唯一事实源，storage 为持久层）
+
+- `stores/cart.js`：购物车 items + selectedIds；默认全选；变更即持久化并同步 tabBar 角标（index 1）
+- `stores/favorites.js`：收藏 items；`isFavorite(id)` 实时驱动心形态
+- App onLaunch 载入；页面 onShow 调 `load()` 重新按当前语言归一化名称（保留选中态）
+
+### 公共组件（components/，easycom 自动注册）
+
+- `dish-card`：统一菜品卡（封面/名单行省略/描述两行 clamp/元信息胶囊），插槽 `leading`（勾选圈）、`actions`（步进器/心形）、`footer`
+- `quantity-stepper`：美团式 − n +；0 时仅显示渐变 + 圆钮
+- `empty-state`：统一空态（图标圆盘 + 标题 + 提示 + 渐变主按钮）
+
+### 页面要点
+
+- 首页：问候头 + 定宽语言 pill（🌐 中/EN）、搜索卡、今日推荐渐变横幅（按日轮换）、最近浏览横滑、分类侧栏（176rpx，选中渐变指示条）、底部黑色悬浮结算条直达采购清单
+- 购物车：CSS 圆形勾选（非 emoji）、默认全选、步进器改份数、仅选中项进入清单
+- 详情：hero 大图 + 上叠信息卡、三宫格统计、食材清单行、做法自动分步编号、底部收藏 + 加购/步进器切换
+- 采购清单：食材带 `category` 字段（数据驱动分组，替代关键词硬编码）；已购勾选持久化 `catcook_shopping_checked`（按食材原始名 key，跨语言有效）；顶部进度条；复制文本含勾选态
+- 搜索：200ms 防抖实时搜索、热门搜索 chip（各分类首菜）、历史 chip 流式布局
+
+### 食材分组字段
+
+`dishes.js` 每个食材含 `category: "vegetable" | "meat" | "seasoning" | "other"`；本地化后保留原始中文名为 `key`，汇总/已购均按 key 合并与持久化。
+
 ## 数据存储设计
 
 ### 本地存储结构

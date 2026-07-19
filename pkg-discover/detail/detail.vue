@@ -1,88 +1,106 @@
 <template>
-  <view class="container" v-if="dish">
-    <swiper class="dish-swiper" indicator-dots circular>
-      <swiper-item>
-        <image class="dish-image" :src="dish.image" mode="aspectFill" />
-      </swiper-item>
-    </swiper>
-
-    <scroll-view class="content" scroll-y>
-      <view class="dish-header">
-        <text class="dish-name">{{ getDishName(dish) }}</text>
-        <text class="dish-desc">{{ getDishDescription(dish) }}</text>
+  <view v-if="dish" class="page">
+    <scroll-view class="page-scroll" scroll-y>
+      <view class="hero">
+        <image class="hero-image" :src="dish.image" mode="aspectFill" />
       </view>
 
-      <view class="dish-meta">
-        <view class="meta-item">
-          <text class="meta-label">{{ t("dish.difficulty") }}:</text>
-          <text class="meta-value">{{ getDifficultyLabel(dish) }}</text>
+      <view class="body-card">
+        <view class="title-row">
+          <text class="dish-name">{{ getDishName(dish) }}</text>
+          <text class="dish-desc">{{ getDishDescription(dish) }}</text>
         </view>
-        <view class="meta-item">
-          <text class="meta-label">{{ t("dish.time") }}:</text>
-          <text class="meta-value">{{ getDishTime(dish) }}</text>
-        </view>
-        <view class="meta-item">
-          <text class="meta-label">{{ t("dish.calories") }}:</text>
-          <text class="meta-value">{{ getDishCalories(dish) }}</text>
-        </view>
-      </view>
 
-      <view class="section">
-        <view class="section-header" @click="toggleIngredients">
-          <text class="section-title">{{ t("dish.ingredients") }}</text>
-          <text class="toggle-icon">{{ showIngredients ? "▼" : "▶" }}</text>
-        </view>
-        <view v-if="showIngredients" class="ingredient-list">
-          <view
-            v-for="(ingredient, index) in dish.ingredients"
-            :key="index"
-            class="ingredient-item"
-          >
-            <text class="ingredient-name">{{ ingredient.name }}</text>
-            <text class="ingredient-amount">{{ ingredient.amount }}</text>
+        <view class="stat-row">
+          <view class="stat-item">
+            <text class="stat-icon">🎯</text>
+            <text class="stat-value">{{ getDifficultyLabel(dish) }}</text>
+            <text class="stat-label">{{ t("dish.difficulty") }}</text>
+          </view>
+          <view class="stat-divider" />
+          <view class="stat-item">
+            <text class="stat-icon">⏱️</text>
+            <text class="stat-value">{{ getDishTime(dish) }}</text>
+            <text class="stat-label">{{ t("dish.time") }}</text>
+          </view>
+          <view class="stat-divider" />
+          <view class="stat-item">
+            <text class="stat-icon">🔥</text>
+            <text class="stat-value">{{ getDishCalories(dish) }}</text>
+            <text class="stat-label">{{ t("dish.calories") }}</text>
           </view>
         </view>
-      </view>
 
-      <view class="section">
-        <view class="section-header" @click="togglePractice">
+        <view class="section">
+          <text class="section-title">{{ t("dish.ingredients") }}</text>
+          <view class="ingredient-list">
+            <view
+              v-for="(ingredient, index) in dish.ingredients"
+              :key="index"
+              class="ingredient-row"
+            >
+              <text class="ingredient-name">{{ ingredient.name }}</text>
+              <text class="ingredient-amount">{{ ingredient.amount }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="section">
           <text class="section-title">{{ t("dish.practice") }}</text>
-          <text class="toggle-icon">{{ showPractice ? "▼" : "▶" }}</text>
+          <view class="step-list">
+            <view
+              v-for="(step, index) in practiceSteps"
+              :key="index"
+              class="step-row"
+            >
+              <view class="step-number">
+                <text class="step-number-text">{{ index + 1 }}</text>
+              </view>
+              <text class="step-text">{{ step }}</text>
+            </view>
+          </view>
         </view>
-        <view v-if="showPractice" class="practice-content">
-          <text class="practice-text">{{ getDishPractice(dish) }}</text>
-        </view>
+
+        <view class="bottom-safe-space" />
       </view>
     </scroll-view>
 
     <view class="bottom-bar">
       <view
         class="favorite-btn"
-        :class="{ animating: favoriteAnimating }"
+        :class="{ active: isFavorite }"
         @click="toggleFavorite"
       >
-        <text class="favorite-icon">{{ isFavorite ? "❤️" : "🤍" }}</text>
+        <text class="favorite-icon">{{ isFavorite ? "♥" : "♡" }}</text>
         <text class="favorite-text">{{
           isFavorite ? t("dish.unfavorite") : t("dish.favorite")
         }}</text>
       </view>
-      <view class="cart-btn" :class="{ animating: cartAnimating }" @click="addToCart">
-        <text class="cart-icon">🛒</text>
-        <text class="cart-text">{{ t("dish.addToCart") }}</text>
+      <view v-if="quantityInCart === 0" class="cart-btn" @click="addToCart">
+        <text class="cart-btn-text">{{ t("dish.addToCart") }}</text>
+      </view>
+      <view v-else class="cart-stepper">
+        <quantity-stepper
+          :quantity="quantityInCart"
+          @increase="addToCart"
+          @decrease="decreaseFromCart"
+        />
       </view>
     </view>
   </view>
 
-  <view v-else class="empty">
-    <text class="empty-text">{{ t("empty.loadFailed") }}</text>
+  <view v-else class="page loading-page">
+    <text class="loading-text">{{ t("common.loading") }}</text>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { onShow } from "@dcloudio/uni-app";
-import { dataService, storage } from "@/data";
+import { onLoad, onShow } from "@dcloudio/uni-app";
+import { dataService } from "@/data";
+import { useCartStore } from "@/stores/cart";
+import { useFavoritesStore } from "@/stores/favorites";
 import {
   getDifficultyLabel,
   getDishCalories,
@@ -94,301 +112,340 @@ import {
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const cartStore = useCartStore();
+const favoritesStore = useFavoritesStore();
 
 const dish = ref(null);
-const dishId = ref(0);
-const showIngredients = ref(true);
-const showPractice = ref(true);
-const isFavorite = ref(false);
-const favoriteAnimating = ref(false);
-const cartAnimating = ref(false);
 
-const toggleIngredients = () => {
-  showIngredients.value = !showIngredients.value;
-};
+const quantityInCart = computed(() =>
+  dish.value ? cartStore.quantityOf(dish.value.id) : 0,
+);
 
-const togglePractice = () => {
-  showPractice.value = !showPractice.value;
-};
+const isFavorite = computed(() =>
+  dish.value ? favoritesStore.isFavorite(dish.value.id) : false,
+);
+
+const practiceSteps = computed(() => {
+  if (!dish.value) return [];
+  const practice = getDishPractice(dish.value) || "";
+  let steps = practice
+    .split(/[。；;]/)
+    .map((step) => step.trim())
+    .filter(Boolean);
+  if (steps.length <= 1) {
+    steps = practice
+      .split(/[，,]/)
+      .map((step) => step.trim())
+      .filter(Boolean);
+  }
+  return steps.length > 0 ? steps : [practice];
+});
 
 const toggleFavorite = () => {
   if (!dish.value) return;
-  const nextFavorite = !isFavorite.value;
-  storage.toggleFavorite(dish.value);
-  isFavorite.value = nextFavorite;
-  triggerAnimation("favorite");
+  const added = favoritesStore.toggle(dish.value);
   uni.showToast({
-    title: nextFavorite ? t("common.success") : t("favorite.removedSuccess"),
+    title: added ? t("common.success") : t("favorite.removedSuccess"),
     icon: "success",
   });
 };
 
 const addToCart = () => {
   if (!dish.value) return;
-  storage.addToCart(dish.value);
-  triggerAnimation("cart");
-  uni.showToast({
-    title: t("cart.addedSuccess"),
-    icon: "success",
-  });
+  cartStore.add(dish.value);
+  if (quantityInCart.value === 1) {
+    uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
+  }
 };
 
-const loadDish = () => {
-  dish.value = dataService.getDishById(dishId.value);
-  syncFavoriteState();
+const decreaseFromCart = () => {
+  if (!dish.value) return;
+  cartStore.setQuantity(dish.value.id, quantityInCart.value - 1);
+};
+
+onLoad((options) => {
+  const dishId = parseInt(options?.id) || 0;
+  dish.value = dataService.getDishById(dishId);
   if (!dish.value) {
-    uni.showToast({
-      title: t("empty.loadFailed"),
-      icon: "none",
-    });
+    uni.showToast({ title: t("empty.loadFailed"), icon: "none" });
   }
-};
-
-const syncFavoriteState = () => {
-  if (!dish.value) {
-    isFavorite.value = false;
-    return;
-  }
-
-  const favorites = storage.getFavorites();
-  isFavorite.value = favorites.some((item) => item.id === dish.value.id);
-};
-
-const triggerAnimation = (type) => {
-  if (type === "favorite") {
-    favoriteAnimating.value = true;
-    setTimeout(() => {
-      favoriteAnimating.value = false;
-    }, 320);
-    return;
-  }
-
-  cartAnimating.value = true;
-  setTimeout(() => {
-    cartAnimating.value = false;
-  }, 320);
-};
-
-onMounted(() => {
-  const pages = getCurrentPages();
-  const currentPage = pages[pages.length - 1];
-  const options = currentPage.options;
-  dishId.value = parseInt(options.id) || 0;
-  loadDish();
 });
 
 onShow(() => {
-  syncFavoriteState();
   syncGlobalI18nUI();
 });
 </script>
 
 <style scoped>
-.container {
+.page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg);
 }
 
-.dish-swiper {
+.page-scroll {
+  flex: 1;
+}
+
+.hero {
   width: 100%;
-  height: 500rpx;
+  height: 560rpx;
+  background-color: #f0ece6;
 }
 
-.dish-image {
+.hero-image {
   width: 100%;
   height: 100%;
 }
 
-.content {
-  flex: 1;
-  padding: 30rpx;
+.body-card {
+  margin-top: -40rpx;
+  border-radius: 32rpx 32rpx 0 0;
+  background-color: var(--bg);
+  padding: 32rpx 24rpx 0;
+  position: relative;
 }
 
-.dish-header {
+.title-row {
+  display: flex;
+  flex-direction: column;
   background-color: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
+  border-radius: var(--radius-card);
+  padding: 28rpx;
+  box-shadow: var(--shadow-card);
 }
 
 .dish-name {
   font-size: 40rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 15rpx;
+  font-weight: 700;
+  color: var(--text-strong);
+  word-break: break-word;
 }
 
 .dish-desc {
-  font-size: 28rpx;
-  color: #666;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: var(--text-weak);
   line-height: 1.6;
+  word-break: break-word;
 }
 
-.dish-meta {
+.stat-row {
   display: flex;
-  justify-content: space-around;
+  align-items: center;
   background-color: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
+  border-radius: var(--radius-card);
+  padding: 28rpx 12rpx;
+  margin-top: 20rpx;
+  box-shadow: var(--shadow-card);
 }
 
-.meta-item {
+.stat-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.meta-label {
-  font-size: 24rpx;
-  color: #999;
-  margin-bottom: 10rpx;
+.stat-divider {
+  width: 1rpx;
+  height: 72rpx;
+  background-color: #f0ece6;
+  flex-shrink: 0;
 }
 
-.meta-value {
-  font-size: 28rpx;
-  color: #ff6b6b;
-  font-weight: bold;
+.stat-icon {
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
+}
+
+.stat-value {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-label {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--text-weak);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section {
   background-color: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
+  border-radius: var(--radius-card);
+  padding: 28rpx;
+  margin-top: 20rpx;
+  box-shadow: var(--shadow-card);
 }
 
 .section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.toggle-icon {
-  font-size: 24rpx;
-  color: #999;
+  display: block;
+  font-size: 31rpx;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin-bottom: 20rpx;
 }
 
 .ingredient-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
 }
 
-.ingredient-item {
+.ingredient-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx;
-  background-color: #f9f9f9;
-  border-radius: 12rpx;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f5f1ec;
+}
+
+.ingredient-row:last-child {
+  border-bottom: none;
 }
 
 .ingredient-name {
-  font-size: 28rpx;
-  color: #333;
+  flex: 1;
+  min-width: 0;
+  font-size: 27rpx;
+  color: var(--text-strong);
+  word-break: break-word;
 }
 
 .ingredient-amount {
-  font-size: 26rpx;
-  color: #ff6b6b;
-  font-weight: bold;
+  flex-shrink: 0;
+  font-size: 25rpx;
+  font-weight: 600;
+  color: var(--primary);
 }
 
-.practice-content {
-  padding: 20rpx;
-  background-color: #f9f9f9;
-  border-radius: 12rpx;
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
 
-.practice-text {
-  font-size: 28rpx;
-  color: #333;
-  line-height: 1.8;
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+}
+
+.step-number {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.step-number-text {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.step-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 27rpx;
+  color: var(--text-normal);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.bottom-safe-space {
+  height: 60rpx;
 }
 
 .bottom-bar {
   display: flex;
+  align-items: center;
   gap: 20rpx;
-  padding: 20rpx 30rpx;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
   background-color: #fff;
-  border-top: 1rpx solid #eee;
+  border-top: 1rpx solid #f0ece6;
 }
 
 .favorite-btn {
-  flex: 1;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20rpx;
-  border: 2rpx solid #ff6b6b;
-  border-radius: 12rpx;
-  transition:
-    transform 0.28s ease,
-    box-shadow 0.28s ease,
-    background-color 0.28s ease;
+  width: 120rpx;
+  padding: 10rpx 0;
 }
 
 .favorite-icon {
-  font-size: 40rpx;
-  margin-bottom: 8rpx;
+  font-size: 44rpx;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+.favorite-btn.active .favorite-icon {
+  color: var(--primary);
 }
 
 .favorite-text {
-  font-size: 24rpx;
-  color: #ff6b6b;
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: var(--text-weak);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cart-btn {
-  flex: 2;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10rpx;
-  padding: 20rpx;
-  background-color: #ff6b6b;
-  border-radius: 12rpx;
-  transition:
-    transform 0.28s ease,
-    box-shadow 0.28s ease,
-    background-color 0.28s ease;
+  padding: 24rpx 0;
+  border-radius: 999rpx;
+  background: var(--gradient-primary);
+  box-shadow: 0 8rpx 20rpx rgba(255, 107, 107, 0.3);
 }
 
-.favorite-btn.animating,
-.cart-btn.animating {
-  transform: scale(1.04);
-  box-shadow: 0 12rpx 28rpx rgba(255, 107, 107, 0.22);
-}
-
-.cart-icon {
-  font-size: 36rpx;
-}
-
-.cart-text {
-  font-size: 28rpx;
+.cart-btn-text {
+  font-size: 29rpx;
+  font-weight: 700;
   color: #fff;
-  font-weight: bold;
 }
 
-.empty {
+.cart-stepper {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  padding: 14rpx 0;
 }
 
-.empty-text {
-  font-size: 28rpx;
-  color: #999;
+.loading-page {
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: var(--text-weak);
 }
 </style>

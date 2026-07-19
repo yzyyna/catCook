@@ -91,16 +91,17 @@ export function getDishIngredients(dish) {
 
   return dish.ingredients.map((ingredient) => ({
     ...ingredient,
+    key: ingredient.name,
     name: getIngredientName(ingredient),
   }));
 }
 
 export function getIngredientCategoryName(category) {
   const categoryMap = {
-    vegetables: "shopping.vegetables",
+    vegetable: "shopping.vegetables",
     meat: "shopping.meat",
-    seasonings: "shopping.seasonings",
-    others: "shopping.others",
+    seasoning: "shopping.seasonings",
+    other: "shopping.others",
   };
   const key = categoryMap[category];
   return key ? t(key) : category;

@@ -1,13 +1,19 @@
 <template>
-  <view class="container">
-    <view class="header-bar">
+  <view class="page">
+    <view class="header">
+      <view class="header-top">
+        <view class="greeting">
+          <text class="greeting-title">{{ t("home.greeting") }}</text>
+          <text class="greeting-sub">{{ t("home.subGreeting") }}</text>
+        </view>
+        <view class="lang-pill" @click="toggleLanguage">
+          <text class="lang-icon">🌐</text>
+          <text class="lang-label">{{ languageShort }}</text>
+        </view>
+      </view>
       <view class="search-bar" @click="goToSearch">
         <text class="search-icon">🔍</text>
         <text class="search-placeholder">{{ t("search.placeholder") }}</text>
-      </view>
-      <view class="language-switch" @click="toggleLanguage">
-        <text class="lang-icon">{{ currentLanguageIcon }}</text>
-        <text class="lang-text">{{ currentLanguageName }}</text>
       </view>
     </view>
 
@@ -25,38 +31,85 @@
         </view>
       </scroll-view>
 
-      <scroll-view class="dish-list" scroll-y @scrolltolower="loadMore">
-        <view
+      <scroll-view
+        class="dish-list"
+        scroll-y
+        :refresher-enabled="true"
+        :refresher-triggered="refreshing"
+        @refresherrefresh="onRefresh"
+      >
+        <view v-if="todayPick" class="pick-card" @click="goToDetail(todayPick)">
+          <view class="pick-info">
+            <text class="pick-badge">{{ t("home.todayPick") }}</text>
+            <text class="pick-name">{{ getDishName(todayPick) }}</text>
+            <text class="pick-desc">{{ getDishDescription(todayPick) }}</text>
+          </view>
+          <image
+            class="pick-image"
+            :src="todayPick.image"
+            mode="aspectFill"
+          />
+        </view>
+
+        <view v-if="recentDishes.length > 0" class="recent-section">
+          <view class="section-title-row">
+            <text class="section-title">{{ t("home.recentViewed") }}</text>
+          </view>
+          <scroll-view
+            class="recent-scroll"
+            scroll-x
+            :enhanced="true"
+            :show-scrollbar="false"
+          >
+            <view class="recent-track">
+              <view
+                v-for="dish in recentDishes"
+                :key="dish.id"
+                class="recent-item"
+                @click="goToDetail(dish)"
+              >
+                <image
+                  class="recent-image"
+                  :src="dish.image"
+                  mode="aspectFill"
+                />
+                <text class="recent-name">{{ getDishName(dish) }}</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <dish-card
           v-for="dish in currentDishes"
           :key="dish.id"
-          class="dish-card"
-          @click="goToDetail(dish)"
-          @longpress="showQuickMenu(dish)"
+          :dish="dish"
+          @click="goToDetail"
+          @longpress="showQuickMenu"
         >
-          <image class="dish-image" :src="dish.image" mode="aspectFill" />
-          <view class="dish-info">
-            <text class="dish-name">{{ getDishName(dish) }}</text>
-            <text class="dish-desc">{{ getDishDescription(dish) }}</text>
-            <view class="dish-meta">
-              <text class="meta-item">{{ getDifficultyLabel(dish) }}</text>
-              <text class="meta-item">{{ getDishTime(dish) }}</text>
-              <text class="meta-item">{{ getDishCalories(dish) }}</text>
-            </view>
-          </view>
-          <view
-            class="dish-actions"
-            :class="{ animating: animatingCartDishId === dish.id }"
-            @click.stop="addToCart(dish)"
-          >
-            <text class="add-icon">+</text>
-          </view>
-        </view>
+          <template #actions>
+            <quantity-stepper
+              :quantity="cartStore.quantityOf(dish.id)"
+              @increase="increase(dish)"
+              @decrease="decrease(dish)"
+            />
+          </template>
+        </dish-card>
+
+        <view class="list-safe-space" />
       </scroll-view>
     </view>
 
-    <view class="cart-float" @click="goToCart">
-      <text class="cart-icon">🛒</text>
-      <view v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</view>
+    <view v-if="cartStore.totalCount > 0" class="checkout-bar">
+      <view class="checkout-left" @click="goToCart">
+        <view class="checkout-icon-wrap">
+          <text class="checkout-icon">🛒</text>
+          <view class="checkout-badge">{{ cartStore.totalCount }}</view>
+        </view>
+        <text class="checkout-count">{{ cartCountText }}</text>
+      </view>
+      <view class="checkout-btn" @click="goToShoppingList">
+        <text class="checkout-btn-text">{{ t("home.checkout") }}</text>
+      </view>
     </view>
   </view>
 </template>
@@ -66,40 +119,49 @@ import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { onShow } from "@dcloudio/uni-app";
 import { useAppStore } from "@/stores/app";
-import { dataService, storage } from "@/data";
+import { useCartStore } from "@/stores/cart";
+import { useFavoritesStore } from "@/stores/favorites";
+import { dataService, storage, dishes } from "@/data";
 import {
+  formatMessage,
   getCategoryName,
-  getDifficultyLabel,
-  getDishCalories,
   getDishDescription,
   getDishName,
-  getDishTime,
 } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
 const appStore = useAppStore();
+const cartStore = useCartStore();
+const favoritesStore = useFavoritesStore();
 
 const categories = ref([]);
 const currentCategoryId = ref(1);
-const cartCount = ref(0);
-const animatingCartDishId = ref(null);
+const recentDishes = ref([]);
+const refreshing = ref(false);
 
 const currentDishes = computed(() => {
+  void appStore.language;
   return dataService.getDishesByCategory(currentCategoryId.value);
 });
 
-const currentLanguageInfo = computed(() => {
-  return appStore.getCurrentLanguageInfo;
+const todayPick = computed(() => {
+  void appStore.language;
+  if (dishes.length === 0) return null;
+  const dayIndex = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
+      86400000,
+  );
+  return dataService.getDishById(dishes[dayIndex % dishes.length].id);
 });
 
-const currentLanguageIcon = computed(() => {
-  return currentLanguageInfo.value?.flag || "🌐";
-});
+const languageShort = computed(() =>
+  appStore.language === "zh-CN" ? "中" : "EN",
+);
 
-const currentLanguageName = computed(() => {
-  return currentLanguageInfo.value?.name || "中文";
-});
+const cartCountText = computed(() =>
+  formatMessage(t("cart.totalCount"), { count: cartStore.totalCount }),
+);
 
 const selectCategory = (id) => {
   currentCategoryId.value = id;
@@ -108,6 +170,15 @@ const selectCategory = (id) => {
 const toggleLanguage = () => {
   appStore.toggleLanguage();
   syncGlobalI18nUI();
+  loadRecent();
+};
+
+const increase = (dish) => {
+  cartStore.add(dish);
+};
+
+const decrease = (dish) => {
+  cartStore.setQuantity(dish.id, cartStore.quantityOf(dish.id) - 1);
 };
 
 const goToDetail = (dish) => {
@@ -129,115 +200,145 @@ const goToCart = () => {
   });
 };
 
-const addToCart = (dish) => {
-  storage.addToCart(dish);
-  updateCartCount();
-  animateCartButton(dish.id);
-  uni.showToast({
-    title: t("cart.addedSuccess"),
-    icon: "success",
+const goToShoppingList = () => {
+  uni.navigateTo({
+    url: "/pkg-tools/shopping/shopping",
   });
 };
 
 const showQuickMenu = (dish) => {
+  const favored = favoritesStore.isFavorite(dish.id);
   uni.showActionSheet({
-    itemList: [t("dish.addToCart"), t("dish.favorite")],
+    itemList: [
+      t("dish.addToCart"),
+      favored ? t("dish.unfavorite") : t("dish.favorite"),
+    ],
     success: (res) => {
       if (res.tapIndex === 0) {
-        addToCart(dish);
+        increase(dish);
+        uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
       } else if (res.tapIndex === 1) {
-        storage.toggleFavorite(dish);
-        uni.showToast({
-          title: t("common.success"),
-          icon: "success",
-        });
+        favoritesStore.toggle(dish);
+        uni.showToast({ title: t("common.success"), icon: "success" });
       }
     },
   });
 };
 
-const updateCartCount = () => {
-  const cart = storage.getCart();
-  cartCount.value = cart.reduce((sum, item) => sum + item.quantity, 0);
+const loadRecent = () => {
+  recentDishes.value = storage.getHistory().slice(0, 10);
 };
 
-const loadMore = () => {
-  console.log("load more");
-};
-
-const animateCartButton = (dishId) => {
-  animatingCartDishId.value = dishId;
+const onRefresh = () => {
+  refreshing.value = true;
+  loadRecent();
   setTimeout(() => {
-    if (animatingCartDishId.value === dishId) {
-      animatingCartDishId.value = null;
-    }
-  }, 320);
+    refreshing.value = false;
+  }, 500);
 };
 
 onMounted(() => {
   categories.value = dataService.getCategories();
-  updateCartCount();
+  loadRecent();
 });
 
 onShow(() => {
-  updateCartCount();
+  loadRecent();
   syncGlobalI18nUI();
 });
 </script>
 
 <style scoped>
-.container {
+.page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--bg);
 }
 
-.header-bar {
+.header {
+  padding: 24rpx 24rpx 20rpx;
+  background-color: var(--bg);
+}
+
+.header-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 20rpx;
-  background-color: #fff;
-  border-bottom: 1rpx solid #eee;
+  margin-bottom: 20rpx;
 }
 
-.search-bar {
+.greeting {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.greeting-title {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.greeting-sub {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-weak);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lang-pill {
+  flex-shrink: 0;
+  width: 104rpx;
+  height: 56rpx;
+  margin-left: 16rpx;
   display: flex;
   align-items: center;
-  padding: 15rpx 25rpx;
-  background-color: #f5f5f5;
-  border-radius: 40rpx;
-  margin-right: 20rpx;
-}
-
-.search-icon {
-  font-size: 32rpx;
-}
-
-.search-placeholder {
-  font-size: 28rpx;
-  color: #999;
-}
-
-.language-switch {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 15rpx 25rpx;
-  background-color: #f5f5f5;
-  border-radius: 40rpx;
+  justify-content: center;
+  gap: 6rpx;
+  background-color: #fff;
+  border-radius: 999rpx;
+  box-shadow: var(--shadow-card);
 }
 
 .lang-icon {
-  font-size: 32rpx;
+  font-size: 26rpx;
 }
 
-.lang-text {
+.lang-label {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 18rpx 28rpx;
+  background-color: #fff;
+  border-radius: 999rpx;
+  box-shadow: var(--shadow-card);
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 14rpx;
+}
+
+.search-placeholder {
+  flex: 1;
+  min-width: 0;
   font-size: 26rpx;
-  color: #ff6b6b;
-  font-weight: bold;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .content {
@@ -247,10 +348,9 @@ onShow(() => {
 }
 
 .category-sidebar {
-  width: 230rpx;
+  width: 176rpx;
   flex-shrink: 0;
-  background-color: #fff;
-  border-right: 1rpx solid #eee;
+  background-color: transparent;
 }
 
 .category-item {
@@ -258,86 +358,42 @@ onShow(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 164rpx;
-  padding: 28rpx 16rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-  box-sizing: border-box;
+  padding: 26rpx 10rpx;
+  margin: 8rpx 12rpx;
+  border-radius: 16rpx;
+  position: relative;
 }
 
 .category-item.active {
-  background-color: #fff5f5;
-  border-left: 6rpx solid #ff6b6b;
+  background-color: #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.category-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8rpx;
+  height: 48rpx;
+  border-radius: 8rpx;
+  background: var(--gradient-primary);
 }
 
 .category-icon {
-  font-size: 48rpx;
-  margin-bottom: 12rpx;
+  font-size: 40rpx;
+  margin-bottom: 10rpx;
   flex-shrink: 0;
 }
 
 .category-name {
   display: block;
   width: 100%;
-  max-width: 180rpx;
-  min-height: 68rpx;
-  font-size: 24rpx;
-  color: #333;
+  font-size: 23rpx;
+  color: var(--text-normal);
   text-align: center;
-  line-height: 1.4;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
-
-.category-item.active .category-name {
-  color: #ff6b6b;
-  font-weight: bold;
-}
-
-.dish-list {
-  flex: 1;
-  min-width: 0;
-  padding: 20rpx;
-}
-
-.dish-card {
-  display: flex;
-  align-items: flex-start;
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.dish-image {
-  width: 160rpx;
-  height: 160rpx;
-  flex-shrink: 0;
-  border-radius: 12rpx;
-  margin-right: 20rpx;
-}
-
-.dish-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.dish-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.dish-desc {
-  font-size: 24rpx;
-  color: #666;
-  margin-bottom: 10rpx;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -346,82 +402,202 @@ onShow(() => {
   word-break: break-word;
 }
 
-.dish-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20rpx;
+.category-item.active .category-name {
+  color: var(--primary);
+  font-weight: 700;
 }
 
-.meta-item {
-  font-size: 22rpx;
-  color: #999;
-  padding: 4rpx 12rpx;
-  background-color: #f5f5f5;
-  border-radius: 8rpx;
+.dish-list {
+  flex: 1;
+  min-width: 0;
+  padding: 4rpx 20rpx 0;
 }
 
-.dish-actions {
+.pick-card {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 60rpx;
-  height: 60rpx;
-  flex-shrink: 0;
-  margin-left: 16rpx;
-  background-color: #ff6b6b;
-  border-radius: 50%;
-  transition:
-    transform 0.28s ease,
-    box-shadow 0.28s ease,
-    background-color 0.28s ease;
-  transform: scale(1);
-  box-shadow: 0 8rpx 20rpx rgba(255, 107, 107, 0.22);
+  justify-content: space-between;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  box-shadow: 0 12rpx 28rpx rgba(255, 107, 107, 0.28);
+  overflow: hidden;
 }
 
-.dish-actions.animating {
-  transform: scale(1.16);
-  box-shadow: 0 12rpx 28rpx rgba(255, 107, 107, 0.36);
-  background-color: #ff8787;
+.pick-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.add-icon {
-  font-size: 40rpx;
+.pick-badge {
+  align-self: flex-start;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #ff6b6b;
+  background-color: #fff;
+  border-radius: 999rpx;
+  padding: 4rpx 16rpx;
+  margin-bottom: 14rpx;
+}
+
+.pick-name {
+  font-size: 34rpx;
+  font-weight: 700;
   color: #fff;
-  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.cart-float {
-  position: fixed;
-  right: 40rpx;
-  bottom: 200rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background-color: #ff6b6b;
-  border-radius: 50%;
+.pick-desc {
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.pick-image {
+  width: 168rpx;
+  height: 168rpx;
+  flex-shrink: 0;
+  margin-left: 20rpx;
+  border-radius: 18rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.6);
+}
+
+.recent-section {
+  margin-bottom: 24rpx;
+}
+
+.section-title-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 4rpx 20rpx rgba(255, 107, 107, 0.4);
+  margin-bottom: 16rpx;
 }
 
-.cart-icon {
-  font-size: 48rpx;
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-strong);
 }
 
-.cart-badge {
+.recent-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.recent-track {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.recent-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 132rpx;
+  flex-shrink: 0;
+}
+
+.recent-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background-color: #f0ece6;
+  border: 4rpx solid #fff;
+  box-shadow: var(--shadow-card);
+}
+
+.recent-name {
+  margin-top: 10rpx;
+  width: 100%;
+  font-size: 22rpx;
+  color: var(--text-normal);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-safe-space {
+  height: 160rpx;
+}
+
+.checkout-bar {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 16rpx 16rpx 28rpx;
+  background-color: #2a2a2a;
+  border-radius: 999rpx;
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.22);
+}
+
+.checkout-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.checkout-icon-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.checkout-icon {
+  font-size: 44rpx;
+}
+
+.checkout-badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 36rpx;
-  height: 36rpx;
-  padding: 0 10rpx;
-  background-color: #ff4757;
-  border-radius: 18rpx;
+  top: -10rpx;
+  right: -16rpx;
+  min-width: 34rpx;
+  height: 34rpx;
+  padding: 0 8rpx;
+  background: var(--gradient-primary);
+  border-radius: 999rpx;
+  border: 2rpx solid #2a2a2a;
   font-size: 20rpx;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2rpx solid #fff;
+}
+
+.checkout-count {
+  margin-left: 20rpx;
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkout-btn {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+  padding: 18rpx 40rpx;
+  border-radius: 999rpx;
+  background: var(--gradient-primary);
+}
+
+.checkout-btn-text {
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #fff;
 }
 </style>
