@@ -2,6 +2,7 @@
   <view
     class="dish-card"
     :class="{ selected }"
+    :style="{ animationDelay: `${Math.min(index, 8) * 45}ms` }"
     @click="emit('click', dish)"
     @longpress="emit('longpress', dish)"
   >
@@ -51,6 +52,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  index: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const emit = defineEmits(["click", "longpress"]);
@@ -67,6 +72,18 @@ const emit = defineEmits(["click", "longpress"]);
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
   overflow: hidden;
+  animation: card-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dish-card.selected {

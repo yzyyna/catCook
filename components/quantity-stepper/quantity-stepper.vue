@@ -43,14 +43,14 @@ const trigger = (type) => {
   }, 200);
 };
 
-const onIncrease = () => {
+const onIncrease = (event) => {
   trigger("plus");
-  emit("increase");
+  emit("increase", event);
 };
 
-const onDecrease = () => {
+const onDecrease = (event) => {
   trigger("minus");
-  emit("decrease");
+  emit("decrease", event);
 };
 </script>
 

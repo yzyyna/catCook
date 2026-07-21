@@ -76,10 +76,14 @@
           isFavorite ? t("dish.unfavorite") : t("dish.favorite")
         }}</text>
       </view>
-      <view v-if="quantityInCart === 0" class="cart-btn" @click="addToCart">
+      <view
+        v-if="quantityInCart === 0"
+        class="cart-btn cart-target"
+        @click="addToCart"
+      >
         <text class="cart-btn-text">{{ t("dish.addToCart") }}</text>
       </view>
-      <view v-else class="cart-stepper">
+      <view v-else class="cart-stepper cart-target">
         <quantity-stepper
           :quantity="quantityInCart"
           @increase="addToCart"
@@ -87,6 +91,8 @@
         />
       </view>
     </view>
+
+    <fly-ball ref="flyRef" />
   </view>
 
   <view v-else class="page loading-page">
@@ -116,6 +122,7 @@ const cartStore = useCartStore();
 const favoritesStore = useFavoritesStore();
 
 const dish = ref(null);
+const flyRef = ref(null);
 
 const quantityInCart = computed(() =>
   dish.value ? cartStore.quantityOf(dish.value.id) : 0,
@@ -150,12 +157,36 @@ const toggleFavorite = () => {
   });
 };
 
-const addToCart = () => {
+const addToCart = (event) => {
   if (!dish.value) return;
   cartStore.add(dish.value);
   if (quantityInCart.value === 1) {
     uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
   }
+  flyToCart(event);
+};
+
+const flyToCart = (event) => {
+  const startX = event?.detail?.x;
+  const startY = event?.detail?.y;
+  if (typeof startX !== "number" || typeof startY !== "number") return;
+
+  setTimeout(() => {
+    uni
+      .createSelectorQuery()
+      .select(".cart-target")
+      .boundingClientRect((rect) => {
+        if (rect && typeof rect.left === "number") {
+          flyRef.value?.fly(
+            startX,
+            startY,
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          );
+        }
+      })
+      .exec();
+  }, 60);
 };
 
 const decreaseFromCart = () => {

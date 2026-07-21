@@ -80,16 +80,17 @@
         </view>
 
         <dish-card
-          v-for="dish in currentDishes"
+          v-for="(dish, dishIndex) in currentDishes"
           :key="dish.id"
           :dish="dish"
+          :index="dishIndex"
           @click="goToDetail"
           @longpress="showQuickMenu"
         >
           <template #actions>
             <quantity-stepper
               :quantity="cartStore.quantityOf(dish.id)"
-              @increase="increase(dish)"
+              @increase="increase(dish, $event)"
               @decrease="decrease(dish)"
             />
           </template>
@@ -111,6 +112,8 @@
         <text class="checkout-btn-text">{{ t("home.checkout") }}</text>
       </view>
     </view>
+
+    <fly-ball ref="flyRef" />
   </view>
 </template>
 
@@ -139,6 +142,7 @@ const categories = ref([]);
 const currentCategoryId = ref(1);
 const recentDishes = ref([]);
 const refreshing = ref(false);
+const flyRef = ref(null);
 
 const currentDishes = computed(() => {
   void appStore.language;
@@ -173,8 +177,37 @@ const toggleLanguage = () => {
   loadRecent();
 };
 
-const increase = (dish) => {
+const increase = (dish, event) => {
   cartStore.add(dish);
+  flyToCart(event);
+};
+
+const flyToCart = (event) => {
+  const startX = event?.detail?.x;
+  const startY = event?.detail?.y;
+  if (typeof startX !== "number" || typeof startY !== "number") return;
+
+  const fallbackAnchor = () => {
+    const info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync();
+    return {
+      x: (74 * info.windowWidth) / 750,
+      y: info.windowHeight - (68 * info.windowWidth) / 750,
+    };
+  };
+
+  setTimeout(() => {
+    uni
+      .createSelectorQuery()
+      .select(".checkout-icon-wrap")
+      .boundingClientRect((rect) => {
+        const anchor =
+          rect && typeof rect.left === "number"
+            ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+            : fallbackAnchor();
+        flyRef.value?.fly(startX, startY, anchor.x, anchor.y);
+      })
+      .exec();
+  }, 80);
 };
 
 const decrease = (dish) => {

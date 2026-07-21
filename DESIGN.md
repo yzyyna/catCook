@@ -167,6 +167,12 @@
 
 `dishes.js` 每个食材含 `category: "vegetable" | "meat" | "seasoning" | "other"`；本地化后保留原始中文名为 `key`，汇总/已购均按 key 合并与持久化。
 
+### 动效体系（2026-07-21）
+
+- 页面进入：全局 `.page` 淡入上浮 0.28s（keyframes 只写 from，结束还原 transform:none，不影响 fixed 子元素）
+- 列表卡片：`dish-card` 按 index 错峰入场（45ms × 序号，上限 8 级）
+- 加购抛物线：`fly-ball` 组件双轴缓动（X linear + Y ease-in 0.56s，缩放渐隐收尾），从触点飞入购物车锚点；首页/详情页接入，锚点经 selectorQuery 获取并有窗口换算兜底；全部 transform/opacity 合成层动画保证 60fps
+
 ## 数据存储设计
 
 ### 本地存储结构

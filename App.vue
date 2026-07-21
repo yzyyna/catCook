@@ -47,4 +47,16 @@ image,
 input {
   box-sizing: border-box;
 }
+
+/* 页面进入过渡：淡入 + 轻微上浮，仅作用于 transform/opacity */
+.page {
+  animation: page-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+}
 </style>
