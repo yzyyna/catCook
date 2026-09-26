@@ -14,24 +14,23 @@
 <script setup>
 import { ref } from "vue";
 
-const FLY_DURATION = 560;
+const FLY_DURATION = 600;
 const CLEANUP_DELAY = FLY_DURATION + 120;
-const START_FRAME_DELAY = 40;
 
 let seq = 0;
 const balls = ref([]);
 
+// 目标态由内联 transform 提供，keyframes 只写 from：
+// 元素插入即按动画起飞，免去两段式 transition 的初始渲染等待
 const outerStyle = (ball) => ({
   left: `${ball.startX}px`,
   top: `${ball.startY}px`,
-  transform: ball.go ? `translate3d(${ball.dx}px, 0, 0)` : "translate3d(0, 0, 0)",
+  transform: `translate3d(${ball.dx}px, 0, 0)`,
 });
 
 const innerStyle = (ball) => ({
-  transform: ball.go
-    ? `translate3d(0, ${ball.dy}px, 0) scale(0.25)`
-    : "translate3d(0, 0, 0) scale(1)",
-  opacity: ball.go ? 0.2 : 1,
+  transform: `translate3d(0, ${ball.dy}px, 0) scale(0.25)`,
+  opacity: 0,
 });
 
 const fly = (startX, startY, endX, endY) => {
@@ -49,12 +48,7 @@ const fly = (startX, startY, endX, endY) => {
     startY,
     dx: endX - startX,
     dy: endY - startY,
-    go: false,
   });
-  setTimeout(() => {
-    const ball = balls.value.find((entry) => entry.id === id);
-    if (ball) ball.go = true;
-  }, START_FRAME_DELAY);
   setTimeout(() => {
     balls.value = balls.value.filter((entry) => entry.id !== id);
   }, CLEANUP_DELAY);
@@ -74,14 +68,22 @@ defineExpose({ fly });
   pointer-events: none;
 }
 
+/* X 轴 ease-out：起步快速横甩、末端减速；Y 轴 ease-in：末端加速下坠，
+   合成"抛入购物车"的弧线。全部 transform/opacity 合成层动画 */
 .fly-ball-outer {
   position: fixed;
   left: 0;
   top: 0;
   width: 0;
   height: 0;
-  transition: transform 0.56s linear;
+  animation: fly-x 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
   will-change: transform;
+}
+
+@keyframes fly-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 .fly-ball-inner {
@@ -91,9 +93,22 @@ defineExpose({ fly });
   border-radius: 50%;
   background: linear-gradient(135deg, #ff6b6b, #ff8e53);
   box-shadow: 0 4rpx 12rpx rgba(255, 107, 107, 0.45);
-  transition:
-    transform 0.56s cubic-bezier(0.55, 0.06, 0.68, 0.19),
-    opacity 0.56s ease-in;
+  animation:
+    fly-y 0.6s cubic-bezier(0.55, 0.06, 0.68, 0.19) both,
+    fly-fade 0.6s cubic-bezier(0.45, 0, 0.85, 0.4) both;
   will-change: transform, opacity;
+}
+
+@keyframes fly-y {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 淡出到 0（此前只降到 0.2 即移除，会有 pop 感） */
+@keyframes fly-fade {
+  from {
+    opacity: 1;
+  }
 }
 </style>

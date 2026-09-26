@@ -219,12 +219,21 @@ const flyToCart = (event) => {
     };
   };
 
-  setTimeout(() => {
+  // 锚点就绪立即起飞（H5 同步测量零延迟）；首次加购结算条刚渲染，
+  // 短间隔重试，重试耗尽用窗口换算兜底
+  const launch = (left) => {
     measureViewportAnchor(".checkout-icon-wrap").then((anchor) => {
-      const target = anchor || fallbackAnchor();
-      flyRef.value?.fly(start.x, start.y, target.x, target.y);
+      if (anchor) {
+        flyRef.value?.fly(start.x, start.y, anchor.x, anchor.y);
+      } else if (left > 0) {
+        setTimeout(() => launch(left - 1), 32);
+      } else {
+        const fallback = fallbackAnchor();
+        flyRef.value?.fly(start.x, start.y, fallback.x, fallback.y);
+      }
     });
-  }, 80);
+  };
+  launch(4);
 };
 
 const decrease = (dish) => {

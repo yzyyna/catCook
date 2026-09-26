@@ -216,13 +216,17 @@ const flyToCart = (event) => {
   const start = extractTouchPoint(event);
   if (!start) return;
 
-  setTimeout(() => {
+  // 详情页底栏常驻，锚点就绪立即起飞；未就绪时短间隔重试
+  const launch = (left) => {
     measureViewportAnchor(".cart-target").then((anchor) => {
       if (anchor) {
         flyRef.value?.fly(start.x, start.y, anchor.x, anchor.y);
+      } else if (left > 0) {
+        setTimeout(() => launch(left - 1), 32);
       }
     });
-  }, 60);
+  };
+  launch(4);
 };
 
 const decreaseFromCart = () => {
