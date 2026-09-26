@@ -3,7 +3,7 @@
     <view class="header">
       <view class="header-top">
         <view class="greeting">
-          <text class="greeting-title">{{ t("home.greeting") }}</text>
+          <text class="greeting-title">{{ t(greetingKey) }}</text>
           <text class="greeting-sub">{{ t("home.subGreeting") }}</text>
         </view>
         <view class="lang-pill" @click="toggleLanguage">
@@ -20,14 +20,15 @@
     <view class="content">
       <scroll-view class="category-sidebar" scroll-y>
         <view
-          v-for="category in categories"
+          v-for="category in sidebarCategories"
           :key="category.id"
           class="category-item"
           :class="{ active: currentCategoryId === category.id }"
           @click="selectCategory(category.id)"
         >
           <text class="category-icon">{{ category.icon }}</text>
-          <text class="category-name">{{ getCategoryName(category) }}</text>
+          <text class="category-name">{{ category.name }}</text>
+          <text class="category-count">{{ category.count }}</text>
         </view>
       </scroll-view>
 
@@ -44,11 +45,9 @@
             <text class="pick-name">{{ getDishName(todayPick) }}</text>
             <text class="pick-desc">{{ getDishDescription(todayPick) }}</text>
           </view>
-          <image
-            class="pick-image"
-            :src="todayPick.image"
-            mode="aspectFill"
-          />
+          <view class="pick-image">
+            <dish-cover :dish="todayPick" />
+          </view>
         </view>
 
         <view v-if="recentDishes.length > 0" class="recent-section">
@@ -68,11 +67,9 @@
                 class="recent-item"
                 @click="goToDetail(dish)"
               >
-                <image
-                  class="recent-image"
-                  :src="dish.image"
-                  mode="aspectFill"
-                />
+                <view class="recent-cover">
+                  <dish-cover :dish="dish" />
+                </view>
                 <text class="recent-name">{{ getDishName(dish) }}</text>
               </view>
             </view>
@@ -120,13 +117,12 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import { useFavoritesStore } from "@/stores/favorites";
 import { dataService, storage, dishes } from "@/data";
 import {
-  formatMessage,
   getCategoryName,
   getDishDescription,
   getDishName,
@@ -139,13 +135,34 @@ const cartStore = useCartStore();
 const favoritesStore = useFavoritesStore();
 
 const categories = ref([]);
-const currentCategoryId = ref(1);
+const categoryCounts = ref({});
+const currentCategoryId = ref(0);
 const recentDishes = ref([]);
 const refreshing = ref(false);
 const flyRef = ref(null);
 
+const sidebarCategories = computed(() => {
+  void appStore.language;
+  const all = {
+    id: 0,
+    icon: "🍽️",
+    name: t("common.all"),
+    count: dataService.getTotalCount(),
+  };
+  const rest = categories.value.map((category) => ({
+    id: category.id,
+    icon: category.icon,
+    name: getCategoryName(category),
+    count: categoryCounts.value[category.id] || 0,
+  }));
+  return [all, ...rest];
+});
+
 const currentDishes = computed(() => {
   void appStore.language;
+  if (currentCategoryId.value === 0) {
+    return dataService.getAllDishes();
+  }
   return dataService.getDishesByCategory(currentCategoryId.value);
 });
 
@@ -163,8 +180,15 @@ const languageShort = computed(() =>
   appStore.language === "zh-CN" ? "中" : "EN",
 );
 
+const greetingKey = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 11) return "home.greetingMorning";
+  if (hour < 18) return "home.greetingAfternoon";
+  return "home.greetingEvening";
+});
+
 const cartCountText = computed(() =>
-  formatMessage(t("cart.totalCount"), { count: cartStore.totalCount }),
+  t("cart.totalCount", { count: cartStore.totalCount }),
 );
 
 const selectCategory = (id) => {
@@ -272,6 +296,7 @@ const onRefresh = () => {
 
 onMounted(() => {
   categories.value = dataService.getCategories();
+  categoryCounts.value = dataService.getCategoryCounts();
   loadRecent();
 });
 
@@ -279,6 +304,11 @@ onShow(() => {
   loadRecent();
   syncGlobalI18nUI();
 });
+
+onShareAppMessage(() => ({
+  title: t("nav.home"),
+  path: "/pages/index/index",
+}));
 </script>
 
 <style scoped>
@@ -391,7 +421,7 @@ onShow(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 26rpx 10rpx;
+  padding: 20rpx 6rpx;
   margin: 8rpx 12rpx;
   border-radius: 16rpx;
   position: relative;
@@ -423,21 +453,41 @@ onShow(() => {
 .category-name {
   display: block;
   width: 100%;
-  font-size: 23rpx;
+  font-size: 20rpx;
   color: var(--text-normal);
   text-align: center;
   line-height: 1.3;
   overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .category-item.active .category-name {
   color: var(--primary);
   font-weight: 700;
+}
+
+.category-count {
+  margin-top: 8rpx;
+  min-width: 36rpx;
+  padding: 0 10rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  line-height: 28rpx;
+  color: var(--text-weak);
+  background-color: #fff;
+  border-radius: 999rpx;
+  text-align: center;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.04);
+}
+
+.category-item.active .category-count {
+  color: #fff;
+  background: var(--gradient-primary);
+  box-shadow: none;
 }
 
 .dish-list {
@@ -480,9 +530,8 @@ onShow(() => {
   font-size: 34rpx;
   font-weight: 700;
   color: #fff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .pick-desc {
@@ -504,6 +553,7 @@ onShow(() => {
   margin-left: 20rpx;
   border-radius: 18rpx;
   border: 4rpx solid rgba(255, 255, 255, 0.6);
+  overflow: hidden;
 }
 
 .recent-section {
@@ -540,13 +590,14 @@ onShow(() => {
   flex-shrink: 0;
 }
 
-.recent-image {
+.recent-cover {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
   background-color: #f0ece6;
   border: 4rpx solid #fff;
   box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .recent-name {
@@ -568,7 +619,8 @@ onShow(() => {
   position: fixed;
   left: 24rpx;
   right: 24rpx;
-  bottom: 24rpx;
+  /* H5 端 tabBar 会遮挡 fixed 元素，--window-bottom 由 uni-app 提供，小程序端回退 0 */
+  bottom: calc(24rpx + var(--window-bottom, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;

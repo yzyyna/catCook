@@ -2,7 +2,7 @@
   <view v-if="dish" class="page">
     <scroll-view class="page-scroll" scroll-y>
       <view class="hero">
-        <image class="hero-image" :src="dish.image" mode="aspectFill" />
+        <dish-cover class="hero-cover" :dish="dish" />
       </view>
 
       <view class="body-card">
@@ -61,6 +61,33 @@
           </view>
         </view>
 
+        <view class="section" v-if="relatedDishes.length > 0">
+          <text class="section-title">{{ t("dish.related") }}</text>
+          <scroll-view
+            class="related-scroll"
+            scroll-x
+            :enhanced="true"
+            :show-scrollbar="false"
+          >
+            <view class="related-track">
+              <view
+                v-for="item in relatedDishes"
+                :key="item.id"
+                class="related-item"
+                @click="goToDish(item)"
+              >
+                <view class="related-cover">
+                  <dish-cover :dish="item" />
+                </view>
+                <text class="related-name">{{ getDishName(item) }}</text>
+                <text class="related-meta">{{
+                  getDifficultyLabel(item)
+                }}</text>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
         <view class="bottom-safe-space" />
       </view>
     </scroll-view>
@@ -103,8 +130,9 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { onLoad, onShow } from "@dcloudio/uni-app";
-import { dataService } from "@/data";
+import { onLoad, onShow, onShareAppMessage } from "@dcloudio/uni-app";
+import { dataService, storage } from "@/data";
+import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import { useFavoritesStore } from "@/stores/favorites";
 import {
@@ -118,11 +146,28 @@ import {
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const appStore = useAppStore();
 const cartStore = useCartStore();
 const favoritesStore = useFavoritesStore();
 
-const dish = ref(null);
+const routeDishId = ref(0);
 const flyRef = ref(null);
+
+// 语言切换时立即按新语言重新本地化，无需离开页面
+const dish = computed(() => {
+  void appStore.language;
+  return dataService.getDishById(routeDishId.value);
+});
+
+const relatedDishes = computed(() => {
+  void appStore.language;
+  const current = dish.value;
+  if (!current) return [];
+  return dataService
+    .getDishesByCategory(current.categoryId)
+    .filter((item) => item.id !== current.id)
+    .slice(0, 6);
+});
 
 const quantityInCart = computed(() =>
   dish.value ? cartStore.quantityOf(dish.value.id) : 0,
@@ -194,16 +239,31 @@ const decreaseFromCart = () => {
   cartStore.setQuantity(dish.value.id, quantityInCart.value - 1);
 };
 
+const goToDish = (item) => {
+  storage.addToHistory(item);
+  uni.redirectTo({
+    url: `/pkg-discover/detail/detail?id=${item.id}`,
+  });
+};
+
 onLoad((options) => {
-  const dishId = parseInt(options?.id) || 0;
-  dish.value = dataService.getDishById(dishId);
-  if (!dish.value) {
+  routeDishId.value = parseInt(options?.id) || 0;
+  if (!dataService.getDishById(routeDishId.value)) {
     uni.showToast({ title: t("empty.loadFailed"), icon: "none" });
   }
 });
 
 onShow(() => {
   syncGlobalI18nUI();
+});
+
+onShareAppMessage(() => {
+  const current = dish.value;
+  return {
+    title: current ? getDishName(current) : t("nav.home"),
+    path: `/pkg-discover/detail/detail?id=${routeDishId.value}`,
+    imageUrl: current?.image || undefined,
+  };
 });
 </script>
 
@@ -225,7 +285,8 @@ onShow(() => {
   background-color: #f0ece6;
 }
 
-.hero-image {
+.hero-cover {
+  --cover-emoji-size: 200rpx;
   width: 100%;
   height: 100%;
 }
@@ -478,5 +539,54 @@ onShow(() => {
 .loading-text {
   font-size: 26rpx;
   color: var(--text-weak);
+}
+
+.related-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.related-track {
+  display: inline-flex;
+  gap: 16rpx;
+  padding-bottom: 8rpx;
+}
+
+.related-item {
+  display: inline-flex;
+  flex-direction: column;
+  width: 176rpx;
+  flex-shrink: 0;
+}
+
+.related-cover {
+  width: 176rpx;
+  height: 176rpx;
+  border-radius: 14rpx;
+  overflow: hidden;
+  background-color: #f0ece6;
+  --cover-emoji-size: 80rpx;
+}
+
+.related-name {
+  margin-top: 12rpx;
+  width: 100%;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-strong);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-meta {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: var(--text-weak);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

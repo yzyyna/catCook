@@ -42,24 +42,33 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 ├── pkg-tools/              # 分包：工具
 │   ├── shopping/shopping.vue  # 采购清单
 │   └── history/history.vue    # 浏览历史
+├── components/             # 公共组件（easycom 自动注册）
+│   ├── dish-card/          #   统一菜品卡（插槽 leading/actions/footer）
+│   ├── dish-cover/         #   封面兜底：无图/加载失败 → 分类渐变 + emoji
+│   ├── quantity-stepper/   #   数量步进器
+│   ├── empty-state/        #   统一空态
+│   └── fly-ball/           #   加购抛物线动画
 ├── data/                   # 数据层（无后端，纯本地）
-│   ├── dishes.js           #   菜品静态数据（含内嵌 i18n）
+│   ├── dishes.js           #   菜品数据：基础 9 道（带实拍图）+ 拼接 moreDishes
+│   ├── dishes-extra.js     #   扩充菜谱 42 道（纯文本数据，双语文真实食谱）
 │   ├── categories.js       #   分类静态数据（nameKey 走语言包）
 │   └── index.js            #   storage（本地存储服务）+ dataService（数据服务）
-├── stores/                 # Pinia
+├── stores/                 # Pinia（运行时唯一事实源，storage 为持久层）
 │   ├── index.js            #   createPinia 实例
-│   └── app.js              #   useAppStore：应用名、当前语言、语言切换
+│   ├── app.js              #   useAppStore：应用名、当前语言、语言切换
+│   ├── cart.js             #   useCartStore：items + selectedIds，变更即持久化并同步角标
+│   └── favorites.js        #   useFavoritesStore：收藏 items + isFavorite
 ├── locales/                # vue-i18n 语言包
 │   ├── index.js            #   createI18n（默认读存储中的语言，fallback en-US）
 │   ├── zh-CN.js / en-US.js
 ├── utils/
-│   ├── i18n.js             #   t()、菜品/分类/难度字段的本地化 getter、setLanguage
+│   ├── i18n.js             #   t()、菜品/分类/难度/用量字段的本地化 getter、setLanguage
 │   └── ui.js               #   syncGlobalI18nUI()：同步 tabBar 与导航栏标题的多语言
 ├── static/                 # 仅放必须打进小程序包的运行时资源（菜品图、tabBar 图标）
 ├── design-assets/          # 设计期资源（不打入包体，勿放运行时引用）
 ├── pages.json              # 路由、tabBar、分包、分包预加载 preloadRule
 ├── manifest.json           # uni-app 应用配置（微信 appid: wx5065003a28ec3848）
-├── App.vue                 # onLaunch/onShow 时调用 syncGlobalI18nUI()
+├── App.vue                 # onLaunch 载入 cart/favorites store 并同步 i18n UI；全局设计令牌
 ├── main.js                 # createSSRApp，注册 pinia 与 i18n
 ├── DESIGN.md               # 完整产品设计文档（页面、数据流、分享格式）
 └── README.md               # 问题记录清单
@@ -70,9 +79,9 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 ### 分层职责
 
 - **页面（pages/\*/pkg-\*/\*）**：只做展示与交互，通过 `dataService`/`storage` 读写数据，不直接操作 `uni.*Storage*`。
-- **dataService（data/index.js）**：静态数据查询——`getCategories()`、`getDishesByCategory(id)`、`getDishById(id)`、`searchDishes(keyword)`、`getIngredientSummary(cartItems)`（食材汇总核心算法）、`generateShareData(cartItems)`。返回的菜品经 `localizeDish()` 按当前语言本地化。
+- **dataService（data/index.js）**：静态数据查询——`getCategories()`、`getAllDishes()`、`getCategoryCounts()`、`getDishesByCategory(id)`、`getDishById(id)`、`searchDishes(keyword)`、`getIngredientSummary(cartItems)`（食材汇总核心算法）、`generateShareData(cartItems)`。返回的菜品经 `localizeDish()` 按当前语言本地化。
 - **storage（data/index.js）**：本地存储 CRUD——购物车/收藏/浏览历史/搜索历史。读取时经 `normalizeDishRecord()` 用 `dishes.js` 源数据回填并本地化，保证存储数据与静态数据同步。
-- **stores/app.js（Pinia）**：仅管理全局应用状态（语言）。购物车/收藏等**不走 Pinia**，直接走 storage + 页面 `onShow` 刷新。
+- **Pinia stores**：`stores/cart.js`（items + selectedIds，变更即写回 storage）、`stores/favorites.js`、`stores/app.js`（语言）。页面 `onShow` 调 `load()` 按当前语言重新归一化。
 
 ### 本地存储 Key（统一 `catcook_` 前缀）
 
@@ -82,6 +91,7 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 | `catcook_favorites` | 收藏 `[{...dish, addTime}]` |
 | `catcook_history` | 浏览历史 `[{...dish, viewTime}]`，最多保留 20 条 |
 | `catcook_search_history` | 搜索历史关键词数组 |
+| `catcook_shopping_checked` | 采购清单已购勾选（按食材原始中文名 key，跨语言有效） |
 | `catcook_language` | 当前语言 `zh-CN` / `en-US` |
 
 ### 食材汇总算法（采购清单核心）
@@ -123,10 +133,11 @@ i18n 采用**三种机制并存**，修改数据或文案时必须分清：
 
 ## 已知问题与注意事项
 
-- README.md 记录了待办：图片资源方案（本地 vs 服务器）、部分翻译完整性——改动相关代码前先核对现状。
+- 菜品共 51 道：`dishes.js` 基础 9 道带实拍图，`dishes-extra.js` 42 道为纯文本数据（无图），由 `dish-cover` 组件显示分类渐变 + emoji 兜底封面；新增无图菜品时带 `emoji` 字段即可。
 - `pages/index/index.js` 是空文件（遗留），逻辑全在 `index.vue`。
 - 项目无单元测试、无 lint 配置；验证方式为在微信开发者工具/H5 中手动回归：选菜 → 加购 → 生成清单 → 分享/复制，以及切换语言后全页面文案刷新。
-- 微信分享通过 `onShareAppMessage` 实现；采购清单还支持"复制文本"兜底。
+- 微信分享通过 `onShareAppMessage` 实现（首页/详情/采购清单）；采购清单还支持"复制文本"兜底。采购清单页的 `uni.share` 按钮仅 App 端可用。
+- vue-i18n 11 会把 `t()` 返回串中的 `{count}` 占位符直接吞掉，带参数文案必须写 `t(key, params)`，**不要**写 `formatMessage(t(key), params)`。
 
 ## 协作指南
 

@@ -49,6 +49,9 @@ export default {
   },
   home: {
     greeting: "今天想吃点什么？",
+    greetingMorning: "早上好，想吃点什么？",
+    greetingAfternoon: "下午好，想吃点什么？",
+    greetingEvening: "晚上好，想吃点什么？",
     subGreeting: "和家人一起，选好每一餐",
     todayPick: "今日推荐",
     recentViewed: "最近浏览",
@@ -82,6 +85,7 @@ export default {
     viewDetail: "查看详情",
     practicePlaceholder: "暂无做法说明",
     ingredientsPlaceholder: "暂无食材信息",
+    related: "相关推荐",
   },
   cart: {
     title: "购物车",
@@ -135,6 +139,8 @@ export default {
     noResultTip: "换个关键词试试吧",
     hotSearch: "热门搜索",
     searchTip: "输入关键词搜索",
+    resultCount: "找到 {count} 道相关菜品",
+    resultCountOne: "找到 1 道相关菜品",
   },
   favorite: {
     title: "我的收藏",

@@ -20,6 +20,9 @@
 
     <scroll-view v-if="hasSearched" class="search-results" scroll-y>
       <template v-if="searchResults.length > 0">
+        <view class="result-count">
+          <text class="result-count-text">{{ resultCountText }}</text>
+        </view>
         <dish-card
           v-for="dish in searchResults"
           :key="dish.id"
@@ -83,15 +86,17 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { onShow } from "@dcloudio/uni-app";
 import { dataService, storage, dishes } from "@/data";
 import { useCartStore } from "@/stores/cart";
+import { useAppStore } from "@/stores/app";
 import { getDishName } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const appStore = useAppStore();
 const cartStore = useCartStore();
 
 const keyword = ref("");
@@ -101,6 +106,14 @@ const searchHistory = ref([]);
 const hotDishes = ref([]);
 
 let debounceTimer = null;
+
+const resultCountText = computed(() => {
+  void appStore.language;
+  const n = searchResults.value.length;
+  return n === 1
+    ? t("search.resultCountOne")
+    : t("search.resultCount", { count: n });
+});
 
 const runSearch = (value) => {
   const trimmed = value.trim();
@@ -316,5 +329,14 @@ onShow(() => {
 
 .chip-text.hot-text {
   color: var(--primary);
+}
+
+.result-count {
+  padding: 0 8rpx 16rpx;
+}
+
+.result-count-text {
+  font-size: 23rpx;
+  color: var(--text-weak);
 }
 </style>

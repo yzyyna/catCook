@@ -10,7 +10,7 @@
       <slot name="leading" />
     </view>
     <view class="card-cover">
-      <image class="card-image" :src="dish.image" mode="aspectFill" />
+      <dish-cover :dish="dish" />
     </view>
     <view class="card-body">
       <text class="card-name">{{ getDishName(dish) }}</text>
@@ -105,11 +105,6 @@ const emit = defineEmits(["click", "longpress"]);
   border-radius: 14rpx;
   overflow: hidden;
   background-color: #f0ece6;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
 }
 
 .card-body {

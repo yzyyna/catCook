@@ -68,7 +68,6 @@ import { onShow } from "@dcloudio/uni-app";
 import { useFavoritesStore } from "@/stores/favorites";
 import { useCartStore } from "@/stores/cart";
 import { storage } from "@/data";
-import { formatMessage } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
@@ -80,12 +79,8 @@ const animatingId = ref(null);
 
 const countText = computed(() =>
   selectedIds.value.length > 0
-    ? formatMessage(t("favorite.selectedCount"), {
-        count: selectedIds.value.length,
-      })
-    : formatMessage(t("favorite.count"), {
-        count: favoritesStore.items.length,
-      }),
+    ? t("favorite.selectedCount", { count: selectedIds.value.length })
+    : t("favorite.count", { count: favoritesStore.items.length }),
 );
 
 const allSelected = computed(

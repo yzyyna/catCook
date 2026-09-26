@@ -94,10 +94,10 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { dataService, storage } from "@/data";
 import { useCartStore } from "@/stores/cart";
-import { formatMessage, getIngredientCategoryName } from "@/utils/i18n";
+import { getIngredientCategoryName } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
@@ -145,7 +145,7 @@ const progressPercent = computed(() => {
 });
 
 const progressText = computed(() =>
-  formatMessage(t("shopping.progress"), {
+  t("shopping.progress", {
     done: checkedCount.value,
     total: ingredientSummary.value.length,
   }),
@@ -223,6 +223,11 @@ onShow(() => {
   pruneChecked();
   syncGlobalI18nUI();
 });
+
+onShareAppMessage(() => ({
+  title: t("shopping.shareTitle"),
+  path: "/pages/index/index",
+}));
 </script>
 
 <style scoped>

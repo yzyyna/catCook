@@ -1,4 +1,6 @@
-export const dishes = [
+import { moreDishes } from "./dishes-extra.js";
+
+const baseDishes = [
   {
     id: 1,
     categoryId: 1,
@@ -290,3 +292,5 @@ export const dishes = [
     calories: "320千卡/杯",
   },
 ];
+
+export const dishes = [...baseDishes, ...moreDishes];

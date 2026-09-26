@@ -86,6 +86,15 @@ export function getIngredientName(ingredient) {
   return ingredient.name || "";
 }
 
+export function getIngredientAmount(ingredient) {
+  if (!ingredient) return "";
+  if (ingredient.i18n?.amount) {
+    const resolved = resolveLocalizedValue(ingredient.i18n.amount);
+    if (resolved) return resolved;
+  }
+  return ingredient.amount || "";
+}
+
 export function getDishIngredients(dish) {
   if (!dish?.ingredients) return [];
 
@@ -93,6 +102,7 @@ export function getDishIngredients(dish) {
     ...ingredient,
     key: ingredient.name,
     name: getIngredientName(ingredient),
+    amount: getIngredientAmount(ingredient),
   }));
 }
 

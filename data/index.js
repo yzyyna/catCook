@@ -220,6 +220,21 @@ export const dataService = {
     return categories;
   },
 
+  getAllDishes() {
+    return dishes.map(localizeDish);
+  },
+
+  getCategoryCounts() {
+    return dishes.reduce((counts, dish) => {
+      counts[dish.categoryId] = (counts[dish.categoryId] || 0) + 1;
+      return counts;
+    }, {});
+  },
+
+  getTotalCount() {
+    return dishes.length;
+  },
+
   getDishesByCategory(categoryId) {
     return dishes
       .filter((dish) => dish.categoryId === categoryId)

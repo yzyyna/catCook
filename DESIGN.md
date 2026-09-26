@@ -173,6 +173,17 @@
 - 列表卡片：`dish-card` 按 index 错峰入场（45ms × 序号，上限 8 级）
 - 加购抛物线：`fly-ball` 组件双轴缓动（X linear + Y ease-in 0.56s，缩放渐隐收尾），从触点飞入购物车锚点；首页/详情页接入，锚点经 selectorQuery 获取并有窗口换算兜底；全部 transform/opacity 合成层动画保证 60fps
 
+### 内容与体验增强（2026-09）
+
+- **菜谱库扩至 51 道**：新增 `data/dishes-extra.js`（42 道双语文真实食谱），`dishes.js` 保留原 9 道（含本地图）并拼接导出 `dishes = [...baseDishes, ...moreDishes]`；全部菜品含内嵌 i18n（名称/描述/做法/时间/热量）与食材 `category` 字段
+- **无图封面兜底**：新组件 `dish-cover`（easycom）——有图显示图（加载失败仅降级显示，不删数据），无图显示按分类着色的柔和渐变 + emoji（`dish.emoji` 优先，回退分类 icon），装饰圆避免空洞；emoji 大小经 CSS 变量 `--cover-emoji-size` 由宿主控制；已接入 dish-card、首页今日推荐/最近浏览、详情页 hero
+- **食材用量双语**：食材 `i18n.amount` 可选字段（如 2勺→2 tbsp、适量→to taste），`getIngredientAmount()` 缺省回退原值，旧数据零改动兼容
+- **首页**：新增"全部"虚拟分类（默认选中，展示全库）+ 每分类菜品计数徽标；问候语按时段切换（早/午/晚）；结算条 `bottom: calc(24rpx + var(--window-bottom))` 修复 H5 端被 tabBar 遮挡
+- **详情页**：新增"相关推荐"横滑区（同分类其余菜品，redirectTo 跳转）；菜品数据改为按语言 computed 求值，切语言即时刷新；新增 `onShareAppMessage`（详情/首页/采购清单）
+- **搜索**：新增结果计数文案（含单数分支 `resultCountOne`）
+- **i18n 插值修复**：vue-i18n 11 会吞掉 `t()` 返回串中的 `{count}` 占位符，全部 `formatMessage(t(key), params)` 写法改为原生 `t(key, params)`；英文单复数采用数字无关文案（"{count} in total"）
+- **英文排版**：侧栏分类名 `word-break: keep-all` + 缩小字号，禁止 Vegetarian 之类的断词；今日推荐名称改为自然换行，避免英文断在词中
+
 ## 数据存储设计
 
 ### 本地存储结构

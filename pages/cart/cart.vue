@@ -72,7 +72,6 @@ import { useI18n } from "vue-i18n";
 import { onShow } from "@dcloudio/uni-app";
 import { useCartStore } from "@/stores/cart";
 import { storage } from "@/data";
-import { formatMessage } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
@@ -80,10 +79,8 @@ const cartStore = useCartStore();
 
 const countText = computed(() =>
   cartStore.selectedCount > 0
-    ? formatMessage(t("cart.selectedCount"), {
-        count: cartStore.selectedCount,
-      })
-    : formatMessage(t("cart.totalCount"), { count: cartStore.totalCount }),
+    ? t("cart.selectedCount", { count: cartStore.selectedCount })
+    : t("cart.totalCount", { count: cartStore.totalCount }),
 );
 
 const generateText = computed(() =>
