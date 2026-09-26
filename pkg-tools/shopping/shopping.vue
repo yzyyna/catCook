@@ -67,12 +67,23 @@
       </scroll-view>
 
       <view class="bottom-bar">
+        <!-- 微信小程序：open-type=share 触发 onShareAppMessage（uni.share 仅 App 端可用） -->
+        <!-- #ifdef MP-WEIXIN -->
+        <button class="bar-btn outline share-btn" open-type="share">
+          <text class="bar-btn-icon">📤</text>
+          <text class="bar-btn-text outline-text">{{
+            t("shopping.shareToFriend")
+          }}</text>
+        </button>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <view class="bar-btn outline" @click="shareToFriend">
           <text class="bar-btn-icon">📤</text>
           <text class="bar-btn-text outline-text">{{
             t("shopping.shareToFriend")
           }}</text>
         </view>
+        <!-- #endif -->
         <view class="bar-btn primary" @click="copyText">
           <text class="bar-btn-icon">📋</text>
           <text class="bar-btn-text">{{ t("shopping.copyText") }}</text>
@@ -468,5 +479,26 @@ onShareAppMessage(() => ({
 
 .bar-btn-text.outline-text {
   color: var(--primary);
+}
+</style>
+
+<style>
+/* 微信小程序 button 默认样式重置：去掉自带边框/内边距/背景，
+   让 open-type="share" 按钮与 .bar-btn 外观完全一致（需非 scoped 才能命中伪元素） */
+.share-btn {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  line-height: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+}
+
+.share-btn::after {
+  border: none;
 }
 </style>

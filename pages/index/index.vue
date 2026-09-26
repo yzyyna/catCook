@@ -294,6 +294,7 @@ onMounted(() => {
 });
 
 onShow(() => {
+  cartStore.load();
   loadRecent();
   syncGlobalI18nUI();
 });

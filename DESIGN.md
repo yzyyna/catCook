@@ -145,7 +145,7 @@
 
 ### 状态层（Pinia 为运行时唯一事实源，storage 为持久层）
 
-- `stores/cart.js`：购物车 items + selectedIds；默认全选；变更即持久化并同步 tabBar 角标（index 1）
+- `stores/cart.js`：购物车 items + selectedIds；默认全选；变更即持久化并同步 tabBar 角标（index 1，启动时 tabBar 未就绪会自动重试，数量 0 移除角标，超 99 显示 99+）
 - `stores/favorites.js`：收藏 items；`isFavorite(id)` 实时驱动心形态
 - App onLaunch 载入；页面 onShow 调 `load()` 重新按当前语言归一化名称（保留选中态）
 
@@ -184,6 +184,8 @@
 - **搜索**：新增结果计数文案（含单数分支 `resultCountOne`）
 - **i18n 插值修复**：vue-i18n 11 会吞掉 `t()` 返回串中的 `{count}` 占位符，全部 `formatMessage(t(key), params)` 写法改为原生 `t(key, params)`；英文单复数采用数字无关文案（"{count} in total"）
 - **英文排版**：侧栏分类名 `word-break: keep-all` + 缩小字号，禁止 Vegetarian 之类的断词；今日推荐名称改为自然换行，避免英文断在词中
+- **旧菜谱用量双语补齐**：基础 9 道菜 35 处中文单位用量补上 `i18n.amount`（2勺→2 tbsp、1条→1 whole、适量→to taste 等），与扩充数据格式统一；zh 视图原样、en 视图自动翻译
+- **采购清单分享按钮**：微信小程序端用 `<button open-type="share">` 触发 `onShareAppMessage`（`uni.share` 仅 App 端可用），其他平台条件编译保持原逻辑；tabBar 购物车角标随数量实时增减
 
 ## 数据存储设计
 
