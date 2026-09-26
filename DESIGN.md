@@ -167,11 +167,12 @@
 
 `dishes.js` 每个食材含 `category: "vegetable" | "meat" | "seasoning" | "other"`；本地化后保留原始中文名为 `key`，汇总/已购均按 key 合并与持久化。
 
-### 动效体系（2026-07-21）
+### 动效体系（2026-07-21，2026-09-27 修正坐标系）
 
-- 页面进入：全局 `.page` 淡入上浮 0.28s（keyframes 只写 from，结束还原 transform:none，不影响 fixed 子元素）
+- 页面进入：全局 `.page` 淡入上浮 0.28s（keyframes 只写 from）。**fill-mode 必须用 `backwards`**：`both/forwards` 会让部分浏览器在动画结束后残留恒等 transform，使 `.page` 成为 fixed 后代（结算条、fly-ball）的包含块，导致定位整体偏移 44px（H5 导航栏高度）
+- 页面高度：`.page` 用 `calc(100vh - var(--window-top) - var(--window-bottom))`，H5 端扣除导航栏与 tabBar（MP 端变量回退 0，仍为 100vh），避免内容超高被裁剪
 - 列表卡片：`dish-card` 按 index 错峰入场（45ms × 序号，上限 8 级）
-- 加购抛物线：`fly-ball` 组件双轴缓动（X linear + Y ease-in 0.56s，缩放渐隐收尾），从触点飞入购物车锚点；首页/详情页接入，锚点经 selectorQuery 获取并有窗口换算兜底；全部 transform/opacity 合成层动画保证 60fps
+- 加购抛物线：`fly-ball` 组件双轴缓动（X linear + Y ease-in 0.56s，缩放渐隐收尾），从触点飞入购物车锚点；全部 transform/opacity 合成层动画保证 60fps。坐标统一用**视口坐标系**：起点经 `utils/event.js` 的 `extractTouchPoint()`（changedTouches.clientX 优先，兼容 MP tap / H5 MouseEvent / 合成事件）；终点经 `measureViewportAnchor()`（H5 用原生 `getBoundingClientRect`，MP 用 `uni.createSelectorQuery`——H5 端 uni 查询返回的是页面内容区坐标，与视口相差一个导航栏高度，不能混用）
 
 ### 内容与体验增强（2026-09）
 

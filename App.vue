@@ -48,9 +48,12 @@ input {
   box-sizing: border-box;
 }
 
-/* 页面进入过渡：淡入 + 轻微上浮，仅作用于 transform/opacity */
+/* 页面进入过渡：淡入 + 轻微上浮，仅作用于 transform/opacity。
+   fill-mode 必须用 backwards：both/forwards 会让部分浏览器在动画结束后
+   残留恒等 transform，使 .page 成为 fixed 后代（结算条、fly-ball）的包含块，
+   导致定位整体偏移 */
 .page {
-  animation: page-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: page-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
 
 @keyframes page-in {

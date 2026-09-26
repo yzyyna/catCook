@@ -169,7 +169,7 @@ onShow(() => {
 .page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
   background-color: var(--bg);
 }
 

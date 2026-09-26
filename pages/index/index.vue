@@ -128,6 +128,7 @@ import {
   getDishName,
 } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
+import { extractTouchPoint, measureViewportAnchor } from "@/utils/event";
 
 const { t } = useI18n();
 const appStore = useAppStore();
@@ -207,9 +208,8 @@ const increase = (dish, event) => {
 };
 
 const flyToCart = (event) => {
-  const startX = event?.detail?.x;
-  const startY = event?.detail?.y;
-  if (typeof startX !== "number" || typeof startY !== "number") return;
+  const start = extractTouchPoint(event);
+  if (!start) return;
 
   const fallbackAnchor = () => {
     const info = uni.getWindowInfo ? uni.getWindowInfo() : uni.getSystemInfoSync();
@@ -220,17 +220,10 @@ const flyToCart = (event) => {
   };
 
   setTimeout(() => {
-    uni
-      .createSelectorQuery()
-      .select(".checkout-icon-wrap")
-      .boundingClientRect((rect) => {
-        const anchor =
-          rect && typeof rect.left === "number"
-            ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-            : fallbackAnchor();
-        flyRef.value?.fly(startX, startY, anchor.x, anchor.y);
-      })
-      .exec();
+    measureViewportAnchor(".checkout-icon-wrap").then((anchor) => {
+      const target = anchor || fallbackAnchor();
+      flyRef.value?.fly(start.x, start.y, target.x, target.y);
+    });
   }, 80);
 };
 
@@ -315,7 +308,7 @@ onShareAppMessage(() => ({
 .page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
   background-color: var(--bg);
 }
 

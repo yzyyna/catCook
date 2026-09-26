@@ -144,6 +144,7 @@ import {
   getDishTime,
 } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
+import { extractTouchPoint, measureViewportAnchor } from "@/utils/event";
 
 const { t } = useI18n();
 const appStore = useAppStore();
@@ -212,25 +213,15 @@ const addToCart = (event) => {
 };
 
 const flyToCart = (event) => {
-  const startX = event?.detail?.x;
-  const startY = event?.detail?.y;
-  if (typeof startX !== "number" || typeof startY !== "number") return;
+  const start = extractTouchPoint(event);
+  if (!start) return;
 
   setTimeout(() => {
-    uni
-      .createSelectorQuery()
-      .select(".cart-target")
-      .boundingClientRect((rect) => {
-        if (rect && typeof rect.left === "number") {
-          flyRef.value?.fly(
-            startX,
-            startY,
-            rect.left + rect.width / 2,
-            rect.top + rect.height / 2,
-          );
-        }
-      })
-      .exec();
+    measureViewportAnchor(".cart-target").then((anchor) => {
+      if (anchor) {
+        flyRef.value?.fly(start.x, start.y, anchor.x, anchor.y);
+      }
+    });
   }, 60);
 };
 
@@ -271,7 +262,7 @@ onShareAppMessage(() => {
 .page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh - var(--window-top, 0px) - var(--window-bottom, 0px));
   background-color: var(--bg);
 }
 
