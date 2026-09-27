@@ -38,12 +38,30 @@
           </template>
         </dish-card>
       </template>
-      <empty-state
-        v-else
-        icon="🔍"
-        :title="t('search.noResult')"
-        :tip="t('search.noResultTip')"
-      />
+      <view v-else class="no-result-wrap">
+        <empty-state
+          icon="🔍"
+          :title="t('search.noResult')"
+          :tip="t('search.noResultTip')"
+        />
+        <view class="discover-card">
+          <view class="discover-header">
+            <text class="discover-title">{{ t("search.hotSearch") }}</text>
+          </view>
+          <view class="chip-flow">
+            <view
+              v-for="dish in hotDishes.slice(0, 6)"
+              :key="dish.id"
+              class="chip hot"
+              hover-class="hv-dim"
+              :hover-stay-time="80"
+              @click="applyKeyword(getDishName(dish))"
+            >
+              <text class="chip-text hot-text">{{ getDishName(dish) }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </scroll-view>
 
     <scroll-view v-else class="discover" scroll-y>
@@ -59,6 +77,8 @@
             v-for="(item, index) in searchHistory"
             :key="index"
             class="chip"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
             @click="applyKeyword(item)"
           >
             <text class="chip-text">{{ item }}</text>

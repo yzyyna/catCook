@@ -3,6 +3,8 @@
     class="dish-card"
     :class="{ selected }"
     :style="{ animationDelay: `${Math.min(index, 8) * 45}ms` }"
+    hover-class="hv-scale"
+    :hover-stay-time="80"
     @click="emit('click', dish)"
     @longpress="emit('longpress', dish)"
   >
@@ -72,7 +74,8 @@ const emit = defineEmits(["click", "longpress"]);
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
   overflow: hidden;
-  animation: card-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* backwards：动画结束还原，避免 fill 残留 transform 压制 hover 按压效果 */
+  animation: card-in 0.32s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
 
 @keyframes card-in {

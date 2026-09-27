@@ -11,7 +11,7 @@
           <text class="lang-label">{{ languageShort }}</text>
         </view>
       </view>
-      <view class="search-bar" @click="goToSearch">
+      <view class="search-bar" hover-class="hv-dim" :hover-stay-time="80" @click="goToSearch">
         <text class="search-icon">🔍</text>
         <text class="search-placeholder">{{ t("search.placeholder") }}</text>
       </view>
@@ -24,6 +24,8 @@
           :key="category.id"
           class="category-item"
           :class="{ active: currentCategoryId === category.id }"
+          hover-class="hv-dim"
+          :hover-stay-time="80"
           @click="selectCategory(category.id)"
         >
           <text class="category-icon">{{ category.icon }}</text>
@@ -35,11 +37,12 @@
       <scroll-view
         class="dish-list"
         scroll-y
+        :scroll-top="mpListScrollTop"
         :refresher-enabled="true"
         :refresher-triggered="refreshing"
         @refresherrefresh="onRefresh"
       >
-        <view v-if="todayPick" class="pick-card" @click="goToDetail(todayPick)">
+        <view v-if="todayPick" class="pick-card" hover-class="hv-scale" :hover-stay-time="80" @click="goToDetail(todayPick)">
           <view class="pick-info">
             <text class="pick-badge">{{ t("home.todayPick") }}</text>
             <text class="pick-name">{{ getDishName(todayPick) }}</text>
@@ -98,14 +101,14 @@
     </view>
 
     <view v-if="cartStore.totalCount > 0" class="checkout-bar">
-      <view class="checkout-left" @click="goToCart">
+      <view class="checkout-left" hover-class="hv-dim" :hover-stay-time="80" @click="goToCart">
         <view class="checkout-icon-wrap">
           <text class="checkout-icon">🛒</text>
           <view class="checkout-badge">{{ cartStore.totalCount }}</view>
         </view>
         <text class="checkout-count">{{ cartCountText }}</text>
       </view>
-      <view class="checkout-btn" @click="goToShoppingList">
+      <view class="checkout-btn" hover-class="hv-dim" :hover-stay-time="80" @click="goToShoppingList">
         <text class="checkout-btn-text">{{ t("home.checkout") }}</text>
       </view>
     </view>
@@ -115,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { useAppStore } from "@/stores/app";
@@ -141,6 +144,17 @@ const currentCategoryId = ref(0);
 const recentDishes = ref([]);
 const refreshing = ref(false);
 const flyRef = ref(null);
+const listScrollTop = ref(0);
+
+// H5 端不向 scroll-view 传 scroll-top（undefined = 组件不干预滚动）
+const mpListScrollTop = computed(() => {
+  // #ifdef MP
+  return listScrollTop.value;
+  // #endif
+  // #ifdef H5
+  return undefined;
+  // #endif
+});
 
 const sidebarCategories = computed(() => {
   void appStore.language;
@@ -193,7 +207,31 @@ const cartCountText = computed(() =>
 );
 
 const selectCategory = (id) => {
+  if (currentCategoryId.value === id) return;
   currentCategoryId.value = id;
+  // 切换分类后右侧列表回到顶部。两端 scroll-view 行为不同，分开处理：
+  // MP：scroll-top prop 变化驱动（0 ↔ 0.01 交替保证触发），原生组件不会
+  //     因无关重渲染拉回；H5：prop 传 undefined 让组件不干预滚动，
+  //     渲染完成后直接置原生 scrollTop（prop 绑定会与用户滚动互相纠缠）
+  // #ifdef H5
+  const resetListScroll = () => {
+    // 真实滚动层是嵌套 div 中 overflow-y 为 auto 的那层
+    const layers = document.querySelectorAll(".dish-list .uni-scroll-view");
+    const scroller = Array.from(layers).find(
+      (el) => getComputedStyle(el).overflowY === "auto",
+    );
+    if (!scroller) return;
+    // 置 0 的同时派发 scroll 事件，让 uni-scroll-view 组件内部状态同步，
+    // 否则组件会在后续更新时把它记住的旧位置 apply 回来
+    scroller.scrollTop = 0;
+    scroller.dispatchEvent(new Event("scroll"));
+  };
+  nextTick(resetListScroll);
+  setTimeout(resetListScroll, 60);
+  // #endif
+  // #ifndef H5
+  listScrollTop.value = listScrollTop.value === 0 ? 0.01 : 0;
+  // #endif
 };
 
 const toggleLanguage = () => {
@@ -631,6 +669,15 @@ onShareAppMessage(() => ({
   background-color: #2a2a2a;
   border-radius: 999rpx;
   box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.22);
+  /* 入场动画用中心 scale + 淡入：translate 会扰动飞球锚点的测量位置 */
+  animation: bar-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
 
 .checkout-left {

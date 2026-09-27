@@ -45,10 +45,10 @@
           <text class="select-all-text">{{ t("common.selectAll") }}</text>
         </view>
         <view class="bottom-actions">
-          <view class="delete-btn" @click="deleteSelected">
+          <view class="delete-btn" hover-class="hv-dim" :hover-stay-time="80" @click="deleteSelected">
             <text class="delete-btn-text">{{ t("cart.deleteSelected") }}</text>
           </view>
-          <view class="primary-btn" @click="generateShoppingList">
+          <view class="primary-btn" hover-class="hv-dim" :hover-stay-time="80" @click="generateShoppingList">
             <text class="primary-btn-text">{{ generateText }}</text>
           </view>
         </view>
@@ -212,6 +212,19 @@ onShow(() => {
 .check-circle.checked {
   border-color: transparent;
   background: var(--gradient-primary);
+  animation: check-pop 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .check-mark {

@@ -187,6 +187,16 @@
 - **旧菜谱用量双语补齐**：基础 9 道菜 35 处中文单位用量补上 `i18n.amount`（2勺→2 tbsp、1条→1 whole、适量→to taste 等），与扩充数据格式统一；zh 视图原样、en 视图自动翻译
 - **采购清单分享按钮**：微信小程序端用 `<button open-type="share">` 触发 `onShareAppMessage`（`uni.share` 仅 App 端可用），其他平台条件编译保持原逻辑；tabBar 购物车角标随数量实时增减
 
+### 交互细节打磨（2026-09 第二批）
+
+- **分类切换回顶**：切换分类后右侧列表回顶部。两端实现分派——H5 端不向 scroll-view 传 `scroll-top`（传 undefined 让组件不干预用户滚动，避免无关重渲染拉顶），nextTick + 60ms 双保险置原生 `scrollTop=0` 并派发 `scroll` 事件同步组件内部状态；MP 端用 scroll-top prop 0↔0.01 交替驱动（原生组件不会因无关重渲染拉回）。注意 H5 真实滚动层是嵌套 div 中 `overflow-y: auto` 的那层
+- **结算条入场动画**：`bar-in`（opacity + 中心 scale 0.94→1）——用中心缩放而非 translateY，避免扰动飞球锚点的测量位置；瞬态 fixed 元素可安全用 both fill
+- **全站按压反馈**：`hover-class` 体系——卡片 `hv-scale`（scale 0.98）、按钮/文字 `hv-dim`（opacity 0.72），覆盖菜品卡、今日推荐、分类项、搜索框、结算条、详情底栏、清单/购物车按钮、空态按钮、搜索 chips；dish-card 的 `card-in` 动画 fill 改 backwards，解除 fill 残留 transform 对 hover 的压制
+- **详情页大图预览**：hero 图点击 `uni.previewImage`（有实拍图时）；无效 id 渲染 empty-state + 返回按钮（替代原 loading 死页）
+- **图片懒加载**：dish-cover 内 image 加 `lazy-load`
+- **搜索空结果推荐**：无结果时在空态下方展示热门搜索 chips（各分类首菜，点击直接填词搜索）
+- **勾选打勾动画**：购物车/收藏/采购清单的勾选圈 `check-pop`（0.82→1.1→1 弹性）
+
 ## 数据存储设计
 
 ### 本地存储结构

@@ -7,6 +7,7 @@
       class="cover-image"
       :src="imageSrc"
       mode="aspectFill"
+      lazy-load
       @error="loadFailed = true"
     />
     <text v-else class="cover-emoji">{{ emoji }}</text>

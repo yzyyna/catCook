@@ -84,7 +84,7 @@
           }}</text>
         </view>
         <!-- #endif -->
-        <view class="bar-btn primary" @click="copyText">
+        <view class="bar-btn primary" hover-class="hv-dim" :hover-stay-time="80" @click="copyText">
           <text class="bar-btn-icon">📋</text>
           <text class="bar-btn-text">{{ t("shopping.copyText") }}</text>
         </view>
@@ -374,6 +374,19 @@ onShareAppMessage(() => ({
 .check-circle.checked {
   border-color: transparent;
   background: var(--gradient-primary);
+  animation: check-pop 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .check-mark {

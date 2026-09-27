@@ -5,7 +5,13 @@
     </view>
     <text class="empty-title">{{ title }}</text>
     <text v-if="tip" class="empty-tip">{{ tip }}</text>
-    <view v-if="buttonText" class="empty-button" @click="emit('action')">
+    <view
+      v-if="buttonText"
+      class="empty-button"
+      hover-class="hv-dim"
+      :hover-stay-time="80"
+      @click="emit('action')"
+    >
       <text class="empty-button-text">{{ buttonText }}</text>
     </view>
   </view>

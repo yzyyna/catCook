@@ -1,7 +1,7 @@
 <template>
   <view v-if="dish" class="page">
     <scroll-view class="page-scroll" scroll-y>
-      <view class="hero">
+      <view class="hero" hover-class="hero-hover" :hover-stay-time="80" @click="previewHero">
         <dish-cover class="hero-cover" :dish="dish" />
       </view>
 
@@ -96,6 +96,8 @@
       <view
         class="favorite-btn"
         :class="{ active: isFavorite }"
+        hover-class="hv-dim"
+        :hover-stay-time="80"
         @click="toggleFavorite"
       >
         <text class="favorite-icon">{{ isFavorite ? "♥" : "♡" }}</text>
@@ -106,6 +108,8 @@
       <view
         v-if="quantityInCart === 0"
         class="cart-btn cart-target"
+        hover-class="hv-dim"
+        :hover-stay-time="80"
         @click="addToCart"
       >
         <text class="cart-btn-text">{{ t("dish.addToCart") }}</text>
@@ -123,7 +127,13 @@
   </view>
 
   <view v-else class="page loading-page">
-    <text class="loading-text">{{ t("common.loading") }}</text>
+    <empty-state
+      icon="🍽️"
+      :title="t('empty.loadFailed')"
+      :tip="t('empty.loadFailedTip')"
+      :button-text="t('common.back')"
+      @action="goBack"
+    />
   </view>
 </template>
 
@@ -234,6 +244,20 @@ const decreaseFromCart = () => {
   cartStore.setQuantity(dish.value.id, quantityInCart.value - 1);
 };
 
+const previewHero = () => {
+  if (dish.value?.image) {
+    uni.previewImage({ urls: [dish.value.image] });
+  }
+};
+
+const goBack = () => {
+  uni.navigateBack({
+    fail: () => {
+      uni.switchTab({ url: "/pages/index/index" });
+    },
+  });
+};
+
 const goToDish = (item) => {
   storage.addToHistory(item);
   uni.redirectTo({
@@ -278,6 +302,10 @@ onShareAppMessage(() => {
   width: 100%;
   height: 560rpx;
   background-color: #f0ece6;
+}
+
+.hero-hover {
+  opacity: 0.92;
 }
 
 .hero-cover {
@@ -529,11 +557,6 @@ onShareAppMessage(() => {
 .loading-page {
   align-items: center;
   justify-content: center;
-}
-
-.loading-text {
-  font-size: 26rpx;
-  color: var(--text-weak);
 }
 
 .related-scroll {

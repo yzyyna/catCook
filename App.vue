@@ -62,4 +62,13 @@ input {
     transform: translateY(20rpx);
   }
 }
+
+/* 全局按压反馈（hover-class 用）：卡片缩放 / 文字按钮变暗 */
+.hv-scale {
+  transform: scale(0.98);
+}
+
+.hv-dim {
+  opacity: 0.72;
+}
 </style>
