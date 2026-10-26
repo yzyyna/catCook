@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 
 const props = defineProps({
   quantity: {
@@ -34,6 +34,10 @@ const emit = defineEmits(["increase", "decrease"]);
 
 const animating = ref("");
 let timer = null;
+
+onUnmounted(() => {
+  clearTimeout(timer);
+});
 
 const trigger = (type) => {
   animating.value = type;

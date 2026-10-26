@@ -74,6 +74,8 @@
                 v-for="item in relatedDishes"
                 :key="item.id"
                 class="related-item"
+                hover-class="hv-dim"
+                :hover-stay-time="80"
                 @click="goToDish(item)"
               >
                 <view class="related-cover">
@@ -247,6 +249,8 @@ const decreaseFromCart = () => {
 const previewHero = () => {
   if (dish.value?.image) {
     uni.previewImage({ urls: [dish.value.image] });
+  } else {
+    uni.showToast({ title: t("dish.noImage"), icon: "none" });
   }
 };
 
@@ -503,7 +507,7 @@ onShareAppMessage(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 120rpx;
+  width: 144rpx;
   padding: 10rpx 0;
 }
 
@@ -520,11 +524,9 @@ onShareAppMessage(() => {
 .favorite-text {
   margin-top: 4rpx;
   font-size: 20rpx;
+  line-height: 1.2;
   color: var(--text-weak);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .cart-btn {

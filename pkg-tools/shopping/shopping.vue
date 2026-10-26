@@ -31,6 +31,9 @@
           class="group-card"
         >
           <view class="group-header">
+            <text class="group-icon">{{
+              GROUP_ICONS[group.category] || "🍽️"
+            }}</text>
             <text class="group-title">{{
               getIngredientCategoryName(group.category)
             }}</text>
@@ -118,6 +121,14 @@ const checkedKeys = ref([]);
 
 const GROUP_ORDER = ["vegetable", "meat", "seasoning", "other"];
 
+// 分组类别图标，便于扫视定位
+const GROUP_ICONS = {
+  vegetable: "🥬",
+  meat: "🥩",
+  seasoning: "🧂",
+  other: "🍽️",
+};
+
 const cartItems = computed(() =>
   cartStore.selectedItems.length > 0
     ? cartStore.selectedItems
@@ -191,12 +202,13 @@ const shareToFriend = () => {
       uni.showToast({ title: t("share.success"), icon: "success" });
     },
     fail: () => {
-      uni.showToast({ title: t("share.failed"), icon: "none" });
+      // uni.share 仅 App 端可用：H5 等端直接降级为复制清单文本
+      copyText();
     },
   });
 };
 
-const copyText = () => {
+const buildShareText = () => {
   let text = `${t("shopping.shareTitle")}\n\n`;
   text += `${t("shopping.dishCount")}: ${dishCount.value}\n`;
   text += `${t("shopping.ingredientCount")}: ${ingredientSummary.value.length}\n`;
@@ -210,9 +222,12 @@ const copyText = () => {
     });
     text += "\n";
   });
+  return text;
+};
 
+const copyText = () => {
   uni.setClipboardData({
-    data: text,
+    data: buildShareText(),
     success: () => {
       uni.showToast({ title: t("share.copySuccess"), icon: "success" });
     },
@@ -282,11 +297,9 @@ onShareAppMessage(() => ({
 .overview-label {
   margin-top: 8rpx;
   font-size: 22rpx;
+  line-height: 1.3;
   color: var(--text-weak);
-  max-width: 160rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
 }
 
 .progress-track {
@@ -330,6 +343,12 @@ onShareAppMessage(() => ({
   align-items: center;
   gap: 12rpx;
   margin-bottom: 8rpx;
+}
+
+.group-icon {
+  font-size: 34rpx;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .group-title {
@@ -433,10 +452,9 @@ onShareAppMessage(() => ({
 .ingredient-dishes {
   margin-top: 6rpx;
   font-size: 22rpx;
+  line-height: 1.4;
   color: var(--text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
 }
 
 .ingredient-row.checked .ingredient-name,

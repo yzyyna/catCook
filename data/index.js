@@ -169,7 +169,9 @@ export const storage = {
   getSearchHistory() {
     try {
       const history = uni.getStorageSync(STORAGE_KEYS.SEARCH_HISTORY);
-      return history ? JSON.parse(history) : [];
+      const parsed = history ? JSON.parse(history) : [];
+      // 防御脏数据：非数组时按空历史处理
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
@@ -196,7 +198,9 @@ export const storage = {
   getShoppingChecked() {
     try {
       const checked = uni.getStorageSync(STORAGE_KEYS.SHOPPING_CHECKED);
-      return checked ? JSON.parse(checked) : [];
+      const parsed = checked ? JSON.parse(checked) : [];
+      // 防御脏数据：非数组时按未勾选处理
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }

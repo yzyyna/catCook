@@ -15,6 +15,7 @@ export default {
     clear: "Clear",
     all: "All",
     selectAll: "Select All",
+    selectFirst: "Please select dishes first",
     back: "Back",
     close: "Close",
     share: "Share",
@@ -80,6 +81,7 @@ export default {
     hard: "Hard",
     addToCart: "Add to Cart",
     removeFromCart: "Remove from Cart",
+    noImage: "No photo for this dish",
     favorite: "Favorite",
     unfavorite: "Unfavorite",
     viewDetail: "View Detail",
@@ -166,6 +168,7 @@ export default {
     viewTime: "Viewed at",
   },
   share: {
+    homeTitle: "Plan family meals together with catCook",
     success: "Share successful",
     failed: "Share failed",
     copySuccess: "Copied to clipboard",
@@ -177,6 +180,7 @@ export default {
   empty: {
     noData: "No data",
     noDataTip: "Add some content",
+    goBrowse: "Browse the menu",
     noNetwork: "Network connection failed",
     noNetworkTip: "Please check network settings",
     loadFailed: "Load failed",

@@ -3,14 +3,18 @@
     <template v-if="favoritesStore.items.length > 0">
       <view class="header">
         <text class="header-title">{{ t("favorite.title") }}</text>
-        <text class="header-count">{{ countText }}</text>
+        <view class="header-side">
+          <text class="header-count">{{ countText }}</text>
+          <lang-pill />
+        </view>
       </view>
 
       <scroll-view class="favorite-list" scroll-y>
         <dish-card
-          v-for="dish in favoritesStore.items"
+          v-for="(dish, dishIndex) in favoritesStore.items"
           :key="dish.id"
           :dish="dish"
+          :index="dishIndex"
           :selected="isSelected(dish.id)"
           @click="goToDetail"
           @longpress="showQuickMenu"
@@ -27,7 +31,8 @@
           <template #actions>
             <view
               class="heart-btn"
-              :class="{ animating: animatingId === dish.id }"
+              hover-class="hv-dim"
+              :hover-stay-time="80"
               @click.stop="removeFavorite(dish)"
             >
               <text class="heart-icon">♥</text>
@@ -44,7 +49,7 @@
           </view>
           <text class="select-all-text">{{ t("common.selectAll") }}</text>
         </view>
-        <view class="delete-btn" @click="removeSelected">
+        <view class="delete-btn" :class="{ disabled: selectedIds.length === 0 }" @click="removeSelected">
           <text class="delete-btn-text">{{ t("favorite.deleteSelected") }}</text>
         </view>
       </view>
@@ -55,7 +60,7 @@
       icon="🤍"
       :title="t('favorite.empty')"
       :tip="t('favorite.emptyTip')"
-      :button-text="t('empty.noDataTip')"
+      :button-text="t('empty.goBrowse')"
       @action="goToHome"
     />
   </view>
@@ -75,7 +80,6 @@ const favoritesStore = useFavoritesStore();
 const cartStore = useCartStore();
 
 const selectedIds = ref([]);
-const animatingId = ref(null);
 
 const countText = computed(() =>
   selectedIds.value.length > 0
@@ -113,27 +117,18 @@ const goToDetail = (dish) => {
 };
 
 const removeFavorite = (dish) => {
-  uni.showModal({
-    title: t("common.confirm"),
-    content: t("favorite.removeConfirm"),
-    confirmText: t("common.confirm"),
-    cancelText: t("common.cancel"),
-    success: (res) => {
-      if (res.confirm) {
-        favoritesStore.toggle(dish);
-        selectedIds.value = selectedIds.value.filter((id) => id !== dish.id);
-        uni.showToast({
-          title: t("favorite.removedSuccess"),
-          icon: "success",
-        });
-      }
-    },
+  // 取消收藏可逆且即时生效，与详情页/历史页保持一致，不再弹确认框
+  favoritesStore.toggle(dish);
+  selectedIds.value = selectedIds.value.filter((id) => id !== dish.id);
+  uni.showToast({
+    title: t("favorite.removedSuccess"),
+    icon: "success",
   });
 };
 
 const removeSelected = () => {
   if (selectedIds.value.length === 0) {
-    uni.showToast({ title: t("cart.select"), icon: "none" });
+    uni.showToast({ title: t("common.selectFirst"), icon: "none" });
     return;
   }
   uni.showModal({
@@ -176,6 +171,9 @@ const goToHome = () => {
 
 onShow(() => {
   favoritesStore.load();
+  // 清理已不存在的选中项（可能在详情页取消了收藏，导致计数虚高/全选误判）
+  const validIds = new Set(favoritesStore.items.map((item) => item.id));
+  selectedIds.value = selectedIds.value.filter((id) => validIds.has(id));
   syncGlobalI18nUI();
 });
 </script>
@@ -205,6 +203,12 @@ onShow(() => {
   font-size: 25rpx;
   color: var(--primary);
   font-weight: 600;
+}
+
+.header-side {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .favorite-list {
@@ -257,11 +261,6 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
-}
-
-.heart-btn.animating {
-  transform: scale(1.15);
 }
 
 .heart-icon {
@@ -305,5 +304,9 @@ onShow(() => {
 .delete-btn-text {
   font-size: 25rpx;
   color: var(--text-weak);
+}
+
+.delete-btn.disabled {
+  opacity: 0.45;
 }
 </style>

@@ -3,14 +3,18 @@
     <template v-if="cartStore.items.length > 0">
       <view class="header">
         <text class="header-title">{{ t("cart.title") }}</text>
-        <text class="header-count">{{ countText }}</text>
+        <view class="header-side">
+          <text class="header-count">{{ countText }}</text>
+          <lang-pill />
+        </view>
       </view>
 
       <scroll-view class="cart-list" scroll-y>
         <dish-card
-          v-for="item in cartStore.items"
+          v-for="(item, itemIndex) in cartStore.items"
           :key="item.id"
           :dish="item"
+          :index="itemIndex"
           :selected="isSelected(item.id)"
           @click="goToDetail"
         >
@@ -29,7 +33,7 @@
               @increase="cartStore.setQuantity(item.id, item.quantity + 1)"
               @decrease="onDecrease(item)"
             />
-            <text class="delete-link" @click.stop="removeItem(item)">{{
+            <text class="delete-link" hover-class="hv-dim" :hover-stay-time="80" @click.stop="removeItem(item)">{{
               t("common.delete")
             }}</text>
           </template>
@@ -45,10 +49,22 @@
           <text class="select-all-text">{{ t("common.selectAll") }}</text>
         </view>
         <view class="bottom-actions">
-          <view class="delete-btn" hover-class="hv-dim" :hover-stay-time="80" @click="deleteSelected">
+          <view
+            class="delete-btn"
+            :class="{ disabled: cartStore.selectedCount === 0 }"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
+            @click="deleteSelected"
+          >
             <text class="delete-btn-text">{{ t("cart.deleteSelected") }}</text>
           </view>
-          <view class="primary-btn" hover-class="hv-dim" :hover-stay-time="80" @click="generateShoppingList">
+          <view
+            class="primary-btn"
+            :class="{ disabled: cartStore.selectedCount === 0 }"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
+            @click="generateShoppingList"
+          >
             <text class="primary-btn-text">{{ generateText }}</text>
           </view>
         </view>
@@ -60,7 +76,7 @@
       icon="🛒"
       :title="t('cart.empty')"
       :tip="t('cart.emptyTip')"
-      :button-text="t('empty.noDataTip')"
+      :button-text="t('empty.goBrowse')"
       @action="goToHome"
     />
   </view>
@@ -116,7 +132,7 @@ const removeItem = (item) => {
 
 const deleteSelected = () => {
   if (cartStore.selectedCount === 0) {
-    uni.showToast({ title: t("cart.select"), icon: "none" });
+    uni.showToast({ title: t("common.selectFirst"), icon: "none" });
     return;
   }
   uni.showModal({
@@ -138,7 +154,7 @@ const deleteSelected = () => {
 
 const generateShoppingList = () => {
   if (cartStore.selectedCount === 0) {
-    uni.showToast({ title: t("cart.select"), icon: "none" });
+    uni.showToast({ title: t("common.selectFirst"), icon: "none" });
     return;
   }
   uni.navigateTo({
@@ -192,6 +208,12 @@ onShow(() => {
   font-weight: 600;
 }
 
+.header-side {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .cart-list {
   flex: 1;
   padding: 8rpx 24rpx 0;
@@ -237,7 +259,7 @@ onShow(() => {
 .delete-link {
   margin-top: 14rpx;
   font-size: 23rpx;
-  color: var(--text-faint);
+  color: var(--text-weak);
   padding: 4rpx 8rpx;
 }
 
@@ -287,6 +309,11 @@ onShow(() => {
 .delete-btn-text {
   font-size: 25rpx;
   color: var(--text-weak);
+}
+
+.delete-btn.disabled,
+.primary-btn.disabled {
+  opacity: 0.45;
 }
 
 .primary-btn {

@@ -15,6 +15,7 @@ export default {
     clear: "清空",
     all: "全部",
     selectAll: "全选",
+    selectFirst: "请先勾选要操作的菜品",
     back: "返回",
     close: "关闭",
     share: "分享",
@@ -80,6 +81,7 @@ export default {
     hard: "困难",
     addToCart: "加入购物车",
     removeFromCart: "从购物车移除",
+    noImage: "这道菜暂无图片",
     favorite: "收藏",
     unfavorite: "取消收藏",
     viewDetail: "查看详情",
@@ -164,6 +166,7 @@ export default {
     viewTime: "浏览时间",
   },
   share: {
+    homeTitle: "一起来选菜，家庭菜单帮你安排每一餐",
     success: "分享成功",
     failed: "分享失败",
     copySuccess: "已复制到剪贴板",
@@ -175,6 +178,7 @@ export default {
   empty: {
     noData: "暂无数据",
     noDataTip: "去添加一些内容吧",
+    goBrowse: "去菜单逛逛",
     noNetwork: "网络连接失败",
     noNetworkTip: "请检查网络设置",
     loadFailed: "加载失败",

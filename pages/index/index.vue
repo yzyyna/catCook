@@ -6,10 +6,7 @@
           <text class="greeting-title">{{ t(greetingKey) }}</text>
           <text class="greeting-sub">{{ t("home.subGreeting") }}</text>
         </view>
-        <view class="lang-pill" @click="toggleLanguage">
-          <text class="lang-icon">🌐</text>
-          <text class="lang-label">{{ languageShort }}</text>
-        </view>
+        <lang-pill @change="loadRecent" />
       </view>
       <view class="search-bar" hover-class="hv-dim" :hover-stay-time="80" @click="goToSearch">
         <text class="search-icon">🔍</text>
@@ -18,10 +15,16 @@
     </view>
 
     <view class="content">
-      <scroll-view class="category-sidebar" scroll-y>
+      <scroll-view
+        class="category-sidebar"
+        scroll-y
+        scroll-into-view="activeCategoryView"
+        scroll-with-animation
+      >
         <view
           v-for="category in sidebarCategories"
           :key="category.id"
+          :id="`cat-${category.id}`"
           class="category-item"
           :class="{ active: currentCategoryId === category.id }"
           hover-class="hv-dim"
@@ -141,6 +144,7 @@ const favoritesStore = useFavoritesStore();
 const categories = ref([]);
 const categoryCounts = ref({});
 const currentCategoryId = ref(0);
+const activeCategoryView = ref("cat-0");
 const recentDishes = ref([]);
 const refreshing = ref(false);
 const flyRef = ref(null);
@@ -191,10 +195,6 @@ const todayPick = computed(() => {
   return dataService.getDishById(dishes[dayIndex % dishes.length].id);
 });
 
-const languageShort = computed(() =>
-  appStore.language === "zh-CN" ? "中" : "EN",
-);
-
 const greetingKey = computed(() => {
   const hour = new Date().getHours();
   if (hour < 11) return "home.greetingMorning";
@@ -209,6 +209,8 @@ const cartCountText = computed(() =>
 const selectCategory = (id) => {
   if (currentCategoryId.value === id) return;
   currentCategoryId.value = id;
+  // 小屏侧栏可能装不下全部分类：把选中项滚入可见区域
+  activeCategoryView.value = `cat-${id}`;
   // 切换分类后右侧列表回到顶部。两端 scroll-view 行为不同，分开处理：
   // MP：scroll-top prop 变化驱动（0 ↔ 0.01 交替保证触发），原生组件不会
   //     因无关重渲染拉回；H5：prop 传 undefined 让组件不干预滚动，
@@ -232,12 +234,6 @@ const selectCategory = (id) => {
   // #ifndef H5
   listScrollTop.value = listScrollTop.value === 0 ? 0.01 : 0;
   // #endif
-};
-
-const toggleLanguage = () => {
-  appStore.toggleLanguage();
-  syncGlobalI18nUI();
-  loadRecent();
 };
 
 const increase = (dish, event) => {
@@ -347,7 +343,7 @@ onShow(() => {
 });
 
 onShareAppMessage(() => ({
-  title: t("nav.home"),
+  title: t("share.homeTitle"),
   path: "/pages/index/index",
 }));
 </script>
@@ -395,30 +391,6 @@ onShareAppMessage(() => ({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.lang-pill {
-  flex-shrink: 0;
-  width: 104rpx;
-  height: 56rpx;
-  margin-left: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6rpx;
-  background-color: #fff;
-  border-radius: 999rpx;
-  box-shadow: var(--shadow-card);
-}
-
-.lang-icon {
-  font-size: 26rpx;
-}
-
-.lang-label {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--primary);
 }
 
 .search-bar {

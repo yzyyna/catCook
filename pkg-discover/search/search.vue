@@ -8,12 +8,12 @@
           v-model="keyword"
           :placeholder="t('search.placeholder')"
           confirm-type="search"
-          focus
+          :focus="inputFocused"
           @confirm="onConfirm"
         />
         <text v-if="keyword" class="clear-icon" @click="clearKeyword">✕</text>
       </view>
-      <view class="cancel-btn" @click="goBack">
+      <view class="cancel-btn" hover-class="hv-dim" :hover-stay-time="80" @click="goBack">
         <text class="cancel-text">{{ t("common.cancel") }}</text>
       </view>
     </view>
@@ -24,9 +24,10 @@
           <text class="result-count-text">{{ resultCountText }}</text>
         </view>
         <dish-card
-          v-for="dish in searchResults"
+          v-for="(dish, dishIndex) in searchResults"
           :key="dish.id"
           :dish="dish"
+          :index="dishIndex"
           @click="goToDetail"
         >
           <template #actions>
@@ -108,7 +109,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import { dataService, storage, dishes } from "@/data";
 import { useCartStore } from "@/stores/cart";
 import { useAppStore } from "@/stores/app";
@@ -124,6 +125,8 @@ const hasSearched = ref(false);
 const searchResults = ref([]);
 const searchHistory = ref([]);
 const hotDishes = ref([]);
+// 首次进入自动聚焦；离开页面后关闭，避免从详情返回时键盘重复弹出
+const inputFocused = ref(true);
 
 let debounceTimer = null;
 
@@ -176,6 +179,7 @@ const goToDetail = (dish) => {
 };
 
 const applyKeyword = (value) => {
+  uni.hideKeyboard();
   keyword.value = value;
   runSearch(value);
   saveToHistory(value);
@@ -225,6 +229,10 @@ onShow(() => {
   loadHotDishes();
   syncGlobalI18nUI();
 });
+
+onHide(() => {
+  inputFocused.value = false;
+});
 </script>
 
 <style scoped>
@@ -270,7 +278,7 @@ onShow(() => {
   flex-shrink: 0;
   font-size: 26rpx;
   color: var(--text-faint);
-  padding: 4rpx 8rpx;
+  padding: 10rpx 14rpx;
 }
 
 .cancel-btn {

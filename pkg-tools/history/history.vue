@@ -2,19 +2,23 @@
   <view class="page">
     <view v-if="history.length > 0" class="header">
       <text class="header-title">{{ t("history.title") }}</text>
-      <view class="clear-btn" @click="clearHistory">
-        <text class="clear-btn-text">{{ t("history.clearHistory") }}</text>
+      <view class="header-side">
+        <lang-pill />
+        <view class="clear-btn" hover-class="hv-dim" :hover-stay-time="80" @click="clearHistory">
+          <text class="clear-btn-text">{{ t("history.clearHistory") }}</text>
+        </view>
       </view>
     </view>
 
     <scroll-view v-if="history.length > 0" class="history-list" scroll-y>
-      <dish-card
-        v-for="dish in history"
-        :key="dish.id"
-        :dish="dish"
-        @click="goToDetail"
-        @longpress="showQuickMenu"
-      >
+        <dish-card
+          v-for="(dish, dishIndex) in history"
+          :key="dish.id"
+          :dish="dish"
+          :index="dishIndex"
+          @click="goToDetail"
+          @longpress="showQuickMenu"
+        >
         <template #footer>
           <text class="view-time">{{ formatViewTime(dish.viewTime) }}</text>
         </template>
@@ -22,6 +26,8 @@
           <view
             class="heart-btn"
             :class="{ active: isFavorite(dish.id) }"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
             @click.stop="toggleFavorite(dish)"
           >
             <text class="heart-icon">{{ isFavorite(dish.id) ? "♥" : "♡" }}</text>
@@ -41,7 +47,7 @@
       icon="🕐"
       :title="t('history.empty')"
       :tip="t('history.emptyTip')"
-      :button-text="t('empty.noDataTip')"
+      :button-text="t('empty.goBrowse')"
       @action="goToHome"
     />
   </view>
@@ -167,6 +173,12 @@ onShow(() => {
   font-size: 36rpx;
   font-weight: 700;
   color: var(--text-strong);
+}
+
+.header-side {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 }
 
 .clear-btn {

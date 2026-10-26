@@ -197,6 +197,30 @@
 - **搜索空结果推荐**：无结果时在空态下方展示热门搜索 chips（各分类首菜，点击直接填词搜索）
 - **勾选打勾动画**：购物车/收藏/采购清单的勾选圈 `check-pop`（0.82→1.1→1 弹性）
 
+### 全面走查修复与打磨（2026-10）
+
+- **双重下拉刷新冲突**：首页原先同时开启页面级 `enablePullDownRefresh` 与 scroll-view `refresher-enabled`，微信端两套刷新并存且页面级未接 `onPullDownRefresh`/`stopPullDownRefresh`；已移除页面级配置，统一走 scroll-view 自定义刷新（`@refresherrefresh` + `refreshing` 500ms）
+- **搜索页键盘重复弹出**：input 静态 `focus` 导致从详情返回时键盘再次弹出；改为 `:focus="inputFocused"` 绑定，`onHide` 置 false（首次进入仍自动聚焦）
+- **收藏页选中态残留**：`selectedIds` 在 onShow 不清理，去详情页取消收藏返回后计数虚高、`allSelected` 误判；onShow 按当前列表 prune（与购物车 store 的 load 对齐）
+- **H5 分享降级**：`uni.share` 仅 App 端可用，采购清单 H5 端点击分享必失败；`fail` 回调降级为复制清单文本（抽出 `buildShareText()` 复用）
+- **步进器定时器清理**：`quantity-stepper` 卸载时清理 `animating` 回置定时器（`onUnmounted`）
+- **取消收藏交互统一**：收藏页心形按钮由「每次弹确认框」改为即时取消 + toast，与详情页/历史页一致；批量删除仍保留确认框
+- **空态/提示文案**：新增 `empty.goBrowse`（空态主按钮，替换语义不当的 `noDataTip`）、`common.selectFirst`（未勾选提示，替换语义不明的「选择」）、`share.homeTitle`（首页分享标题）、`dish.noImage`（详情页无图 hero 点击反馈）；中英语言包同步新增
+- **英文排版防截断**：详情页收藏按钮加宽至 144rpx 且文案允许换行（"Unfavorite" 不再被省略号截断）；采购清单概览标签、食材来源行由 nowrap 省略改为完整换行展示
+- **按压反馈补齐**：语言 pill、搜索取消/清除（触达区域加大）、历史清空、收藏/历史心形、购物车删除链接统一 `hv-dim`；各列表（购物车/收藏/搜索/历史）补传 `:index` 启用错峰入场
+- **tabBar 分割线**：`borderStyle` black → white，与柔和米白设计协调（内容区与 tabBar 有背景色差分界）
+- **清理死代码**：收藏页从未赋值的 `animatingId` 状态及对应 `.animating` 样式移除
+
+### 第二轮优化（2026-10）
+
+- **语言切换入口扩展**：抽出公共组件 `components/lang-pill`（首页原 pill 逻辑迁入，内部完成 `toggleLanguage` + `syncGlobalI18nUI` 并派发 `change` 事件供页面按需刷新），接入购物车/收藏/历史页头部——此前只有首页能切语言，其他页面用户会困在错误语言里；菜品名/难度/时间等经 i18n getter 响应 locale，切语言即时刷新无需重载
+- **批量操作禁用态**：购物车「删除选中/生成清单」、收藏「删除选中」在无可勾选项时置灰（opacity 0.45），把「点了才弹提示」变为「可见即知不可用」；toast 兜底保留
+- **搜索体验**：点击热门/历史 chip 后 `uni.hideKeyboard()` 收起键盘
+- **采购清单分组图标**：分组标题前加类别 emoji（🥬 蔬菜 / 🥩 肉类 / 🧂 调料 / 🍽️ 其他），便于扫视定位
+- **分类侧栏 scroll-into-view**：首页侧栏加 `scroll-into-view` + `scroll-with-animation`，切换分类时自动把选中项滚入可见区域，小屏（侧栏装不下 9 个分类）不再点不到下方分类
+- **存储健壮性**：`getSearchHistory` / `getShoppingChecked` 加 `Array.isArray` 防御，脏数据按空数组兜底
+- **死代码清理**：`dish-card` 的 `showCalories` prop（从未有页面传入）、`utils/i18n.js` 的 `formatMessage`（AGENTS.md 明确的占位符反模式）与 `useAppI18n`（无调用方）、`stores/app.js` 的 `getAppName/getLanguage/getSupportedLanguages/getCurrentLanguageInfo` getters 与 `setAppName`/`appName`（均无引用）
+
 ## 数据存储设计
 
 ### 本地存储结构

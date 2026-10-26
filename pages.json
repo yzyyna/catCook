@@ -3,8 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "菜单",
-        "enablePullDownRefresh": true
+        "navigationBarTitleText": "菜单"
       }
     },
     {
@@ -74,7 +73,7 @@
     "color": "#999999",
     "selectedColor": "#FF6B6B",
     "backgroundColor": "#FFFFFF",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",

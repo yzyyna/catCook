@@ -1,5 +1,3 @@
-import { useI18n } from "vue-i18n";
-
 let i18nInstance = null;
 
 function resolveLocalizedValue(value, locale = getCurrentLanguage()) {
@@ -117,14 +115,6 @@ export function getIngredientCategoryName(category) {
   return key ? t(key) : category;
 }
 
-export function formatMessage(template, params) {
-  let message = template;
-  Object.keys(params).forEach((key) => {
-    message = message.replace(`{${key}}`, params[key]);
-  });
-  return message;
-}
-
 export function getCurrentLanguage() {
   if (!i18nInstance) return "zh-CN";
   return i18nInstance.global.locale.value || i18nInstance.global.locale;
@@ -141,26 +131,4 @@ export function setLanguage(locale) {
     i18nInstance.global.locale = locale;
   }
   return true;
-}
-
-export function useAppI18n() {
-  const { t: i18nT, locale } = useI18n();
-
-  return {
-    t: i18nT,
-    locale,
-    getCategoryName,
-    getDifficultyLabel,
-    getDishName,
-    getDishDescription,
-    getDishPractice,
-    getDishTime,
-    getDishCalories,
-    getIngredientName,
-    getDishIngredients,
-    getIngredientCategoryName,
-    formatMessage,
-    setLanguage,
-    getCurrentLanguage,
-  };
 }

@@ -23,27 +23,13 @@ function saveLanguageToStorage(lang) {
 
 export const useAppStore = defineStore("app", {
   state: () => ({
-    appName: "catCook",
     language: getStoredLanguage(),
     supportedLanguages: [
       { code: "zh-CN", name: "简体中文", flag: "🇨🇳" },
       { code: "en-US", name: "English", flag: "🇺🇸" },
     ],
   }),
-  getters: {
-    getAppName: (state) => state.appName,
-    getLanguage: (state) => state.language,
-    getSupportedLanguages: (state) => state.supportedLanguages,
-    getCurrentLanguageInfo: (state) => {
-      return state.supportedLanguages.find(
-        (lang) => lang.code === state.language,
-      );
-    },
-  },
   actions: {
-    setAppName(name) {
-      this.appName = name;
-    },
     setLanguage(lang) {
       if (!this.supportedLanguages.find((l) => l.code === lang)) {
         console.warn(`Unsupported language: ${lang}`);

@@ -20,9 +20,6 @@
       <view class="card-meta">
         <text class="meta-tag">{{ getDifficultyLabel(dish) }}</text>
         <text class="meta-tag">{{ getDishTime(dish) }}</text>
-        <text v-if="showCalories" class="meta-tag">{{
-          getDishCalories(dish)
-        }}</text>
       </view>
       <slot name="footer" />
     </view>
@@ -35,7 +32,6 @@
 <script setup>
 import {
   getDifficultyLabel,
-  getDishCalories,
   getDishDescription,
   getDishName,
   getDishTime,
@@ -47,10 +43,6 @@ const props = defineProps({
     required: true,
   },
   selected: {
-    type: Boolean,
-    default: false,
-  },
-  showCalories: {
     type: Boolean,
     default: false,
   },
