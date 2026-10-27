@@ -278,6 +278,10 @@ onLoad((options) => {
 
 onShow(() => {
   syncGlobalI18nUI();
+  // 导航栏标题显示当前菜名，比固定"菜品详情"更有方位感；无数据时保留语言包标题
+  if (dish.value) {
+    uni.setNavigationBarTitle({ title: getDishName(dish.value) });
+  }
 });
 
 onShareAppMessage(() => {

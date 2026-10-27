@@ -66,8 +66,8 @@ const onDecrease = (event) => {
 }
 
 .stepper-btn {
-  width: 48rpx;
-  height: 48rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;

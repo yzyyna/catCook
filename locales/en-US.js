@@ -133,6 +133,7 @@ export default {
     emptyTip: "Please select dishes in the cart first",
     purchased: "Purchased",
     progress: "{done}/{total} purchased",
+    resetChecked: "Reset checks",
   },
   search: {
     placeholder: "Search dishes, ingredients, practices...",

@@ -21,7 +21,17 @@
         <view class="progress-track">
           <view class="progress-fill" :style="{ width: progressPercent }" />
         </view>
-        <text class="progress-text">{{ progressText }}</text>
+        <view class="progress-row">
+          <text class="progress-text">{{ progressText }}</text>
+          <text
+            v-if="checkedCount > 0"
+            class="progress-reset"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
+            @click="resetChecked"
+            >{{ t("shopping.resetChecked") }}</text
+          >
+        </view>
       </view>
 
       <scroll-view class="group-list" scroll-y>
@@ -175,6 +185,11 @@ const progressText = computed(() =>
 
 const isChecked = (key) => checkedKeys.value.includes(key);
 
+const resetChecked = () => {
+  checkedKeys.value = [];
+  storage.setShoppingChecked([]);
+};
+
 const toggleChecked = (key) => {
   if (isChecked(key)) {
     checkedKeys.value = checkedKeys.value.filter((item) => item !== key);
@@ -317,12 +332,24 @@ onShareAppMessage(() => ({
   transition: width 0.3s ease;
 }
 
-.progress-text {
-  display: block;
+.progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
   margin-top: 12rpx;
+}
+
+.progress-text {
   font-size: 23rpx;
   color: var(--text-weak);
-  text-align: right;
+}
+
+.progress-reset {
+  flex-shrink: 0;
+  font-size: 23rpx;
+  color: var(--primary);
+  padding: 4rpx 8rpx;
 }
 
 .group-list {
@@ -379,8 +406,8 @@ onShareAppMessage(() => ({
 }
 
 .check-circle {
-  width: 42rpx;
-  height: 42rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
   border: 3rpx solid #d8d2cc;
   background-color: #fff;

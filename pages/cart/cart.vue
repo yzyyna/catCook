@@ -42,7 +42,7 @@
       </scroll-view>
 
       <view class="bottom-bar">
-        <view class="select-all" @click="cartStore.toggleSelectAll()">
+        <view class="select-all" hover-class="hv-dim" :hover-stay-time="80" @click="cartStore.toggleSelectAll()">
           <view class="check-circle" :class="{ checked: cartStore.allSelected }">
             <text v-if="cartStore.allSelected" class="check-mark">✓</text>
           </view>
@@ -220,8 +220,8 @@ onShow(() => {
 }
 
 .check-circle {
-  width: 42rpx;
-  height: 42rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
   border: 3rpx solid #d8d2cc;
   background-color: #fff;

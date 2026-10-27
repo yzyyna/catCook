@@ -221,6 +221,24 @@
 - **存储健壮性**：`getSearchHistory` / `getShoppingChecked` 加 `Array.isArray` 防御，脏数据按空数组兜底
 - **死代码清理**：`dish-card` 的 `showCalories` prop（从未有页面传入）、`utils/i18n.js` 的 `formatMessage`（AGENTS.md 明确的占位符反模式）与 `useAppI18n`（无调用方）、`stores/app.js` 的 `getAppName/getLanguage/getSupportedLanguages/getCurrentLanguageInfo` getters 与 `setAppName`/`appName`（均无引用）
 
+### 第三轮优化（2026-10）
+
+- **触达热区加大**：`quantity-stepper` 圆钮 48rpx→56rpx、勾选圈 42rpx→48rpx（原约 21–24pt，低于 comfortable touch 区间），列表行内点击更稳
+- **空态垂直居中**：`empty-state` 加 `flex: 1` 撑满 `.page` 剩余空间，购物车/收藏/历史/采购清单/详情失败态由贴顶改为垂直居中；嵌入滚动区或块级容器时该属性自然失效，不影响搜索页空结果布局
+- **详情页导航栏标题动态化**：onShow 在 `syncGlobalI18nUI()` 后把标题覆写为当前菜名（`getDishName`），无数据时保留语言包「菜品详情」兜底
+- **采购清单重置勾选**：进度行右侧新增「重置勾选」入口（`shopping.resetChecked`，仅在有已购项时出现），避免逐条点击取消；清空即写存储
+
+### 第四轮优化（2026-10）
+
+- **购物车默认全选修复**：设计文档与代码此前不一致——`selectedIds` 初始为空，首次进购物车所有批量按钮都是灰的，而采购清单页又用 `selectedCount > 0 ? selected : all` 兜底显示全部。现按设计实现默认全选：`load()` 在 `selectionTouched === false` 时全选，用户任一勾选操作（单选/全选/删除）置 `selectionTouched = true`，此后只做失效项清理，不再覆盖用户意图；新增菜品在用户已手动整理过勾选时自动勾选，重复加购不改变勾选态
+- **清单用量按份数放大**：原 `getIngredientSummary` 完全忽略 `quantity`——2 份红烧肉仍显示 500g 五花肉，采购会买少。新增 `scaleAmount(amount, quantity)`：仅处理「数字 + 单位」（500g / 2勺 / 110ml），「适量 / 少许 / to taste」等模糊用量原样返回，解析失败也原样返回不丢信息；浮点误差按 2 位精度取整
+- **清理模板残留**：删除根目录 HBuilderX 初始化模板 `index.vue`（Hello 示例页，无任何引用，容易误认为入口）
+- **按压反馈补齐（第二批）**：购物车/收藏底部「全选」、收藏「删除选中」按钮
+
+### 份数语义（重要）
+
+`quantity` 在三个地方语义一致：购物车角标与 `totalCount` 累加份数；采购清单「菜品数量」累加份数；食材用量按份数放大。因此 1 道菜 × 2 份在清单里记 2 道菜、食材量翻倍，与用户「买两份」的预期一致。
+
 ## 数据存储设计
 
 ### 本地存储结构

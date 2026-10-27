@@ -132,6 +132,7 @@ export default {
     emptyTip: "请先在购物车中选择菜品",
     purchased: "已购",
     progress: "已购 {done}/{total}",
+    resetChecked: "重置勾选",
   },
   search: {
     placeholder: "搜索菜品、食材、做法...",

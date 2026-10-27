@@ -43,13 +43,19 @@
       </scroll-view>
 
       <view class="bottom-bar">
-        <view class="select-all" @click="toggleSelectAll">
+        <view class="select-all" hover-class="hv-dim" :hover-stay-time="80" @click="toggleSelectAll">
           <view class="check-circle" :class="{ checked: allSelected }">
             <text v-if="allSelected" class="check-mark">✓</text>
           </view>
           <text class="select-all-text">{{ t("common.selectAll") }}</text>
         </view>
-        <view class="delete-btn" :class="{ disabled: selectedIds.length === 0 }" @click="removeSelected">
+        <view
+          class="delete-btn"
+          :class="{ disabled: selectedIds.length === 0 }"
+          hover-class="hv-dim"
+          :hover-stay-time="80"
+          @click="removeSelected"
+        >
           <text class="delete-btn-text">{{ t("favorite.deleteSelected") }}</text>
         </view>
       </view>
@@ -217,8 +223,8 @@ onShow(() => {
 }
 
 .check-circle {
-  width: 42rpx;
-  height: 42rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 50%;
   border: 3rpx solid #d8d2cc;
   background-color: #fff;

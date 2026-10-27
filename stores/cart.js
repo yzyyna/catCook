@@ -38,6 +38,9 @@ export const useCartStore = defineStore("cart", {
   state: () => ({
     items: [],
     selectedIds: [],
+    // 首次载入默认全选（对齐设计）；用户手动改过勾选后只做失效清理，
+    // 避免「取消全选 → 离开页面 → 回来又被全选」覆盖用户意图
+    selectionTouched: false,
   }),
   getters: {
     totalCount: (state) =>
@@ -56,22 +59,37 @@ export const useCartStore = defineStore("cart", {
   actions: {
     load() {
       this.items = storage.getCart();
-      // 清理已不存在的选中项
-      this.selectedIds = this.selectedIds.filter((id) =>
-        this.items.some((item) => item.id === id),
-      );
+      if (this.selectionTouched) {
+        // 清理已不存在的选中项
+        this.selectedIds = this.selectedIds.filter((id) =>
+          this.items.some((item) => item.id === id),
+        );
+      } else {
+        this.selectedIds = this.items.map((item) => item.id);
+      }
       syncCartBadge(this.totalCount);
     },
     add(dish) {
+      const wasInCart = this.items.some((item) => item.id === dish.id);
       storage.addToCart(dish);
       this.load();
+      // 用户已手动整理过勾选时，新加入的菜品默认勾选；重复加购不改变勾选态
+      if (
+        !wasInCart &&
+        this.selectionTouched &&
+        !this.selectedIds.includes(dish.id)
+      ) {
+        this.selectedIds = [...this.selectedIds, dish.id];
+      }
     },
     remove(dishId) {
+      this.selectionTouched = true;
       storage.removeFromCart(dishId);
       this.selectedIds = this.selectedIds.filter((id) => id !== dishId);
       this.load();
     },
     removeSelected() {
+      this.selectionTouched = true;
       this.selectedIds.forEach((id) => storage.removeFromCart(id));
       this.selectedIds = [];
       this.load();
@@ -81,6 +99,7 @@ export const useCartStore = defineStore("cart", {
       this.load();
     },
     toggleSelect(id) {
+      this.selectionTouched = true;
       if (this.selectedIds.includes(id)) {
         this.selectedIds = this.selectedIds.filter((itemId) => itemId !== id);
       } else {
@@ -88,6 +107,7 @@ export const useCartStore = defineStore("cart", {
       }
     },
     toggleSelectAll() {
+      this.selectionTouched = true;
       if (this.allSelected) {
         this.selectedIds = [];
       } else {

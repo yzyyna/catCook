@@ -273,18 +273,21 @@ export const dataService = {
     const ingredientMap = new Map();
 
     cartItems.forEach((item) => {
+      const quantity = item.quantity > 0 ? item.quantity : 1;
       item.ingredients.forEach((ingredient) => {
         const key = ingredient.key || ingredient.name;
+        // 用量按份数放大：2 份红烧肉需要 1000g 五花肉，而不是单份的 500g
+        const amount = scaleAmount(ingredient.amount, quantity);
         if (ingredientMap.has(key)) {
           const existing = ingredientMap.get(key);
-          existing.amounts.push(ingredient.amount);
+          existing.amounts.push(amount);
           existing.dishes.push(item.name);
         } else {
           ingredientMap.set(key, {
             key,
             name: ingredient.name,
             category: ingredient.category || "other",
-            amounts: [ingredient.amount],
+            amounts: [amount],
             dishes: [item.name],
           });
         }
@@ -313,8 +316,19 @@ export const dataService = {
 
 export { dishes, categories };
 
-function localizeDish(dish) {
-  return {
+// 用量按份数放大：只处理「数字 + 单位」（如 500g、2勺、110ml），
+// 「适量 / 少许」等模糊用量原样返回，无法解析时也原样返回避免丢信息
+function scaleAmount(amount, quantity) {
+  if (!amount || quantity === 1) return amount;
+  const matched = String(amount).trim().match(/^(\d+(?:\.\d+)?)(.*)$/);
+  if (!matched) return amount;
+  const scaled = Number(matched[1]) * quantity;
+  // 去掉浮点误差尾数（如 0.30000000000000004）
+  const value = Math.round(scaled * 100) / 100;
+  return `${value}${matched[2]}`;
+}
+
+function localizeDish(dish) {  return {
     ...dish,
     name: getDishName(dish),
     description: getDishDescription(dish),

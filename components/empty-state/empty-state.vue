@@ -46,6 +46,8 @@ const emit = defineEmits(["action"]);
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 撑满父级剩余空间并垂直居中；嵌入滚动区/块级容器时该属性自然失效 */
+  flex: 1;
   padding: 120rpx 60rpx;
 }
 
