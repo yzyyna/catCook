@@ -1,14 +1,14 @@
 <template>
   <view class="page">
-    <template v-if="favoritesStore.items.length > 0">
-      <view class="header">
-        <text class="header-title">{{ t("favorite.title") }}</text>
-        <view class="header-side">
-          <text class="header-count">{{ countText }}</text>
-          <lang-pill />
-        </view>
+    <view class="header">
+      <text class="header-title">{{ t("favorite.title") }}</text>
+      <view class="header-side">
+        <text class="header-count">{{ countText }}</text>
+        <lang-pill />
       </view>
+    </view>
 
+    <template v-if="favoritesStore.items.length > 0">
       <scroll-view class="favorite-list" scroll-y>
         <dish-card
           v-for="(dish, dishIndex) in favoritesStore.items"
@@ -156,6 +156,9 @@ const removeSelected = () => {
 };
 
 const showQuickMenu = (dish) => {
+  try {
+    uni.vibrateShort({ type: "light" });
+  } catch (e) {}
   uni.showActionSheet({
     itemList: [t("dish.addToCart"), t("dish.unfavorite")],
     success: (res) => {

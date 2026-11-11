@@ -3,7 +3,7 @@
     <view v-if="history.length > 0" class="header">
       <text class="header-title">{{ t("history.title") }}</text>
       <view class="header-side">
-        <lang-pill />
+        <lang-pill @change="loadHistory" />
         <view class="clear-btn" hover-class="hv-dim" :hover-stay-time="80" @click="clearHistory">
           <text class="clear-btn-text">{{ t("history.clearHistory") }}</text>
         </view>
@@ -58,11 +58,13 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { onShow } from "@dcloudio/uni-app";
 import { storage } from "@/data";
+import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import { useFavoritesStore } from "@/stores/favorites";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const appStore = useAppStore();
 const cartStore = useCartStore();
 const favoritesStore = useFavoritesStore();
 
@@ -90,7 +92,10 @@ const formatViewTime = (timestamp) => {
   } else if (days < 7) {
     return days + t("common.daysAgo");
   }
-  return date.toLocaleDateString();
+  // 超过 7 天显示绝对日期，按当前界面语言格式化（与相对时间文案保持一致）
+  return date.toLocaleDateString(
+    appStore.language === "en-US" ? "en-US" : "zh-CN",
+  );
 };
 
 const isFavorite = (dishId) => favoritesStore.isFavorite(dishId);
@@ -111,6 +116,9 @@ const toggleFavorite = (dish) => {
 };
 
 const showQuickMenu = (dish) => {
+  try {
+    uni.vibrateShort({ type: "light" });
+  } catch (e) {}
   uni.showActionSheet({
     itemList: [t("dish.addToCart"), t("common.delete")],
     success: (res) => {

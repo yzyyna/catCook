@@ -1,5 +1,12 @@
 <template>
   <view class="page">
+    <view class="header">
+      <text class="header-title">{{ t("shopping.title") }}</text>
+      <view class="header-side">
+        <lang-pill />
+      </view>
+    </view>
+
     <template v-if="cartItems.length > 0">
       <view class="overview-card">
         <view class="overview-stats">
@@ -109,7 +116,7 @@
       icon="📝"
       :title="t('shopping.empty')"
       :tip="t('shopping.emptyTip')"
-      :button-text="t('dish.addToCart')"
+      :button-text="t('empty.goCart')"
       @action="goToCart"
     />
   </view>
@@ -121,10 +128,12 @@ import { useI18n } from "vue-i18n";
 import { onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { dataService, storage } from "@/data";
 import { useCartStore } from "@/stores/cart";
+import { useAppStore } from "@/stores/app";
 import { getIngredientCategoryName } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 
 const { t } = useI18n();
+const appStore = useAppStore();
 const cartStore = useCartStore();
 
 const checkedKeys = ref([]);
@@ -139,19 +148,18 @@ const GROUP_ICONS = {
   other: "🍽️",
 };
 
-const cartItems = computed(() =>
-  cartStore.selectedItems.length > 0
-    ? cartStore.selectedItems
-    : cartStore.items,
-);
+// 采购清单严格使用购物车选中项：用户取消全选后不应再回退展示全部，
+// 否则与「仅选中项进入清单」的设计语义冲突
+const cartItems = computed(() => cartStore.selectedItems);
 
 const dishCount = computed(() =>
   cartItems.value.reduce((sum, item) => sum + item.quantity, 0),
 );
 
-const ingredientSummary = computed(() =>
-  dataService.getIngredientSummary(cartItems.value),
-);
+const ingredientSummary = computed(() => {
+  void appStore.language;
+  return dataService.getIngredientSummary(cartItems.value);
+});
 
 const groupedIngredients = computed(() => {
   const groups = GROUP_ORDER.map((category) => ({ category, items: [] }));
@@ -201,6 +209,8 @@ const toggleChecked = (key) => {
 
 const pruneChecked = () => {
   const validKeys = ingredientSummary.value.map((ingredient) => ingredient.key);
+  // 无选中项时清单为空：保留已购记录，避免用户临时取消全选后进度被清空
+  if (validKeys.length === 0) return;
   const pruned = checkedKeys.value.filter((key) => validKeys.includes(key));
   if (pruned.length !== checkedKeys.value.length) {
     checkedKeys.value = pruned;
@@ -209,6 +219,11 @@ const pruneChecked = () => {
 };
 
 const shareToFriend = () => {
+  // uni.share 仅 App 端提供：其他端直接走复制文本兜底，避免调用未实现 API 抛错
+  if (typeof uni.share !== "function") {
+    copyText();
+    return;
+  }
   const shareData = dataService.generateShareData(cartItems.value);
   uni.share({
     title: shareData.title,
@@ -217,7 +232,6 @@ const shareToFriend = () => {
       uni.showToast({ title: t("share.success"), icon: "success" });
     },
     fail: () => {
-      // uni.share 仅 App 端可用：H5 等端直接降级为复制清单文本
       copyText();
     },
   });
@@ -279,8 +293,27 @@ onShareAppMessage(() => ({
   background-color: var(--bg);
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 28rpx 16rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.header-side {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .overview-card {
-  margin: 24rpx 24rpx 8rpx;
+  margin: 8rpx 24rpx 8rpx;
   background-color: #fff;
   border-radius: var(--radius-card);
   padding: 28rpx;

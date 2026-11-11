@@ -235,6 +235,27 @@
 - **清理模板残留**：删除根目录 HBuilderX 初始化模板 `index.vue`（Hello 示例页，无任何引用，容易误认为入口）
 - **按压反馈补齐（第二批）**：购物车/收藏底部「全选」、收藏「删除选中」按钮
 
+### 第五轮优化（2026-10）
+
+- **双语全域检索**：`dataService.searchDishes` 检索池扩充至全部中英文字段（`dish.name`, `dish.i18n.name.en-US`, 做法, 描述, 所有食材中英文名），不再受当前界面语言限制。中英文混合搜索 100% 命中，并统一返回 `.map(localizeDish)` 本地化结果
+- **封面加载失败状态防污染**：`dish-cover` 增加对 `props.dish.id` 和 `props.dish.image` 的 watch，在卡片复用或菜品切换时重置 `loadFailed = false`，防止上一道菜图片加载失败导致新菜有效图片被屏蔽
+- **语言切换集中联动全局 Store**：`lang-pill` 点击时集中调用 `cartStore.load()` 和 `favoritesStore.load()`，使任意页面切语言时购物车与收藏夹的内存数据即刻同步中英文状态
+- **详情页浮动语言切换与标题联动**：菜品大图右上角放置浮动 `lang-pill`（`@click.stop`），并配合 `watch(() => appStore.language)` 动态更新顶部导航栏为新语言菜名，看菜谱时无需退出页面即可中英秒切
+- **采购清单体验统一**：顶部补齐 `<view class="header">` 与 `lang-pill`，四工具/列表页视觉架构统一；`ingredientSummary` 绑定语言响应
+- **触觉与交互反馈**：首页/收藏/历史长按菜品卡片弹出 ActionSheet 前触发 `uni.vibrateShort({ type: 'light' })`；历史页切换语言自动重载相对时间；搜索页热门菜品 Chip 补齐 `hv-dim` 按压反馈
+
+### 第六轮：审查风险修复（2026-11）
+
+- **清单严格按选中项生成**：移除 `selectedItems` 为空时回退展示全部购物车的逻辑，与「仅选中项进入清单」语义一致；空态提示改为「去购物车勾选（`empty.goCart`）」，按钮跳转购物车
+- **首页结算条守卫对齐**：未勾选任何菜品时 toast 提示并跳转购物车，避免进入空清单
+- **H5 分享安全降级**：`uni.share` 为 App 专属 API，调用前加 `typeof` 守卫，未实现端直接复制清单文本，避免 TypeError 吞掉兜底
+- **空态页保留语言入口**：购物车/收藏/采购清单的 header 从 `v-if` 内提到页面顶层，空态时仍可切换语言
+- **详情页标题单一出口**：`PAGE_TITLE_MAP` 移除详情页映射，标题统一由 `syncDetailTitle()` 管理（有菜名显示菜名，无数据回退语言包），消除 `syncGlobalI18nUI` 与页面 watch 的抢写
+- **历史页绝对日期本地化**：超过 7 天的日期按 `appStore.language` 传入 `toLocaleDateString` 的 locale，中英一致
+- **英文用量单复数**：`scaleAmount` 增加英文计数单位复数化（1 box → 2 boxes、1 handful → 2 handfuls；tbsp/tsp/whole 保持原形）
+- **组件内按压类兜底**：`dish-card`/`empty-state`/`lang-pill` 各自补充 `hv-scale`/`hv-dim` 定义，规避微信小程序组件样式隔离导致的全局类失效
+- **文档校正**：移除 AGENTS.md 中已删除的 `pages/index/index.js` 遗留说明，补充 `lang-pill` 目录与分享/选中守卫说明
+
 ### 份数语义（重要）
 
 `quantity` 在三个地方语义一致：购物车角标与 `totalCount` 累加份数；采购清单「菜品数量」累加份数；食材用量按份数放大。因此 1 道菜 × 2 份在清单里记 2 道菜、食材量翻倍，与用户「买两份」的预期一致。

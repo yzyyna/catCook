@@ -45,6 +45,7 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 ├── components/             # 公共组件（easycom 自动注册）
 │   ├── dish-card/          #   统一菜品卡（插槽 leading/actions/footer）
 │   ├── dish-cover/         #   封面兜底：无图/加载失败 → 分类渐变 + emoji
+│   ├── lang-pill/          #   语言切换药丸：集中联动各 Store 与全局 i18n UI
 │   ├── quantity-stepper/   #   数量步进器
 │   ├── empty-state/        #   统一空态
 │   └── fly-ball/           #   加购抛物线动画
@@ -134,10 +135,10 @@ i18n 采用**三种机制并存**，修改数据或文案时必须分清：
 ## 已知问题与注意事项
 
 - 菜品共 51 道：`dishes.js` 基础 9 道带实拍图，`dishes-extra.js` 42 道为纯文本数据（无图），由 `dish-cover` 组件显示分类渐变 + emoji 兜底封面；新增无图菜品时带 `emoji` 字段即可。
-- `pages/index/index.js` 是空文件（遗留），逻辑全在 `index.vue`。
 - 项目无单元测试、无 lint 配置；验证方式为在微信开发者工具/H5 中手动回归：选菜 → 加购 → 生成清单 → 分享/复制，以及切换语言后全页面文案刷新。
-- 微信分享通过 `onShareAppMessage` 实现（首页/详情/采购清单）；采购清单还支持"复制文本"兜底。采购清单页的 `uni.share` 按钮仅 App 端可用。
-- vue-i18n 11 会把 `t()` 返回串中的 `{count}` 占位符直接吞掉，带参数文案必须写 `t(key, params)`，**不要**写 `formatMessage(t(key), params)`。
+- 微信分享通过 `onShareAppMessage` 实现（首页/详情/采购清单）；采购清单还支持"复制文本"兜底。采购清单页的 `uni.share` 按钮仅 App 端可用，代码已加 `typeof` 守卫，其余端直接走复制文本。
+- 采购清单严格按购物车选中项生成；购物车与首页结算条均有"未选择"守卫，未勾选时引导回购物车。
+- vue-i18n 11 会把 `t()` 返回串中的 `{count}` 占位符直接吞掉，带参数文案必须写 `t(key, params)`。
 
 ## 协作指南
 

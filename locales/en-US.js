@@ -182,6 +182,7 @@ export default {
     noData: "No data",
     noDataTip: "Add some content",
     goBrowse: "Browse the menu",
+    goCart: "Select in cart",
     noNetwork: "Network connection failed",
     noNetworkTip: "Please check network settings",
     loadFailed: "Load failed",

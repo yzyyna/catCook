@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { categories } from "@/data/categories";
 
 const props = defineProps({
@@ -26,6 +26,14 @@ const props = defineProps({
 });
 
 const loadFailed = ref(false);
+
+// 卡片复用或菜品切换时重置加载失败状态，防止上一张图的失败态污染新菜
+watch(
+  () => [props.dish?.id, props.dish?.image],
+  () => {
+    loadFailed.value = false;
+  },
+);
 
 // 每个分类一套柔和渐变，与米白底色和主色 #FF6B6B 协调
 const COVER_GRADIENTS = {

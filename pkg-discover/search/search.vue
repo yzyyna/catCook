@@ -96,6 +96,8 @@
             v-for="dish in hotDishes"
             :key="dish.id"
             class="chip hot"
+            hover-class="hv-dim"
+            :hover-stay-time="80"
             @click="applyKeyword(getDishName(dish))"
           >
             <text class="chip-text hot-text">{{ getDishName(dish) }}</text>

@@ -8,7 +8,6 @@ import {
   getDishName,
   getDishPractice,
   getDishTime,
-  getIngredientName,
 } from "../utils/i18n.js";
 
 const STORAGE_KEYS = {
@@ -252,21 +251,30 @@ export const dataService = {
 
   searchDishes(keyword) {
     const lowerKeyword = keyword.toLowerCase();
-    return dishes.filter(
-      (dish) =>
-        [
+    return dishes
+      .filter((dish) => {
+        // 双语全域检索：无论当前处于何种语言，搜中文或英文名/食材/做法均能命中
+        const pool = [
           dish.name,
-          getDishName(dish),
           dish.description,
-          getDishDescription(dish),
           dish.practice,
-          getDishPractice(dish),
-          ...dish.ingredients.map((ing) => ing.name),
-          ...dish.ingredients.map((ing) => getIngredientName(ing)),
-        ]
+          dish.i18n?.name?.["zh-CN"],
+          dish.i18n?.name?.["en-US"],
+          dish.i18n?.description?.["zh-CN"],
+          dish.i18n?.description?.["en-US"],
+          dish.i18n?.practice?.["zh-CN"],
+          dish.i18n?.practice?.["en-US"],
+          ...dish.ingredients.flatMap((ing) => [
+            ing.name,
+            ing.i18n?.name?.["zh-CN"],
+            ing.i18n?.name?.["en-US"],
+          ]),
+        ];
+        return pool
           .filter(Boolean)
-          .some((text) => text.toLowerCase().includes(lowerKeyword)),
-    );
+          .some((text) => String(text).toLowerCase().includes(lowerKeyword));
+      })
+      .map(localizeDish);
   },
 
   getIngredientSummary(cartItems) {
@@ -318,6 +326,15 @@ export { dishes, categories };
 
 // 用量按份数放大：只处理「数字 + 单位」（如 500g、2勺、110ml），
 // 「适量 / 少许」等模糊用量原样返回，无法解析时也原样返回避免丢信息
+// 英文计数单位需变复数：1 box → 2 boxes、1 handful → 2 handfuls；
+// tbsp / tsp / whole 等保持原形
+const EN_UNIT_PLURALS = {
+  whole: "whole",
+  box: "boxes",
+  tbsp: "tbsp",
+  tsp: "tsp",
+};
+
 function scaleAmount(amount, quantity) {
   if (!amount || quantity === 1) return amount;
   const matched = String(amount).trim().match(/^(\d+(?:\.\d+)?)(.*)$/);
@@ -325,10 +342,19 @@ function scaleAmount(amount, quantity) {
   const scaled = Number(matched[1]) * quantity;
   // 去掉浮点误差尾数（如 0.30000000000000004）
   const value = Math.round(scaled * 100) / 100;
-  return `${value}${matched[2]}`;
+  let unit = matched[2];
+  const enUnit = unit.match(/^(\s+)([A-Za-z]+)$/);
+  if (enUnit) {
+    const word = enUnit[2];
+    const plural =
+      EN_UNIT_PLURALS[word] || (/s$/.test(word) ? word : `${word}s`);
+    unit = enUnit[1] + plural;
+  }
+  return `${value}${unit}`;
 }
 
-function localizeDish(dish) {  return {
+function localizeDish(dish) {
+  return {
     ...dish,
     name: getDishName(dish),
     description: getDishDescription(dish),

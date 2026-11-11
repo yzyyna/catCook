@@ -3,6 +3,9 @@
     <scroll-view class="page-scroll" scroll-y>
       <view class="hero" hover-class="hero-hover" :hover-stay-time="80" @click="previewHero">
         <dish-cover class="hero-cover" :dish="dish" />
+        <view class="hero-lang" @click.stop>
+          <lang-pill />
+        </view>
       </view>
 
       <view class="body-card">
@@ -140,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { onLoad, onShow, onShareAppMessage } from "@dcloudio/uni-app";
 import { dataService, storage } from "@/data";
@@ -276,13 +279,25 @@ onLoad((options) => {
   }
 });
 
+const syncDetailTitle = () => {
+  // 详情页标题唯一出口：有菜名显示菜名，无数据回退语言包标题
+  uni.setNavigationBarTitle({
+    title: dish.value ? getDishName(dish.value) : t("nav.detail"),
+  });
+};
+
 onShow(() => {
   syncGlobalI18nUI();
-  // 导航栏标题显示当前菜名，比固定"菜品详情"更有方位感；无数据时保留语言包标题
-  if (dish.value) {
-    uni.setNavigationBarTitle({ title: getDishName(dish.value) });
-  }
+  syncDetailTitle();
 });
+
+// 在详情页内点击语言药丸时，即时刷新顶部导航栏标题为新语言菜名
+watch(
+  () => appStore.language,
+  () => {
+    syncDetailTitle();
+  },
+);
 
 onShareAppMessage(() => {
   const current = dish.value;
@@ -307,9 +322,17 @@ onShareAppMessage(() => {
 }
 
 .hero {
+  position: relative;
   width: 100%;
   height: 560rpx;
   background-color: #f0ece6;
+}
+
+.hero-lang {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  z-index: 10;
 }
 
 .hero-hover {

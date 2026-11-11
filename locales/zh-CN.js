@@ -180,6 +180,7 @@ export default {
     noData: "暂无数据",
     noDataTip: "去添加一些内容吧",
     goBrowse: "去菜单逛逛",
+    goCart: "去购物车勾选",
     noNetwork: "网络连接失败",
     noNetworkTip: "请检查网络设置",
     loadFailed: "加载失败",

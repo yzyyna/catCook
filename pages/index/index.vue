@@ -294,12 +294,26 @@ const goToCart = () => {
 };
 
 const goToShoppingList = () => {
+  // 与购物车页守卫对齐：未勾选任何菜品时不进入清单（清单严格按选中项生成）
+  if (cartStore.selectedCount === 0) {
+    // 先切到购物车再提示，避免 toast 被页面切换打断
+    uni.switchTab({
+      url: "/pages/cart/cart",
+      success: () => {
+        uni.showToast({ title: t("common.selectFirst"), icon: "none" });
+      },
+    });
+    return;
+  }
   uni.navigateTo({
     url: "/pkg-tools/shopping/shopping",
   });
 };
 
 const showQuickMenu = (dish) => {
+  try {
+    uni.vibrateShort({ type: "light" });
+  } catch (e) {}
   const favored = favoritesStore.isFavorite(dish.id);
   uni.showActionSheet({
     itemList: [

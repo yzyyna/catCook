@@ -96,4 +96,9 @@ const emit = defineEmits(["action"]);
   font-weight: 600;
   color: #fff;
 }
+
+/* 小程序组件样式隔离下 App.vue 的全局按压类可能不生效，组件内补一份 */
+.hv-dim {
+  opacity: 0.72;
+}
 </style>

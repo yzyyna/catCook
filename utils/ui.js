@@ -2,7 +2,8 @@ import { t } from "./i18n";
 
 const PAGE_TITLE_MAP = {
   "pages/index/index": "nav.home",
-  "pkg-discover/detail/detail": "nav.detail",
+  // 详情页标题由页面自身按当前菜名管理（见 detail.vue 的 syncDetailTitle），
+  // 不在此处统一覆盖，避免固定"菜品详情"与菜名互相抢写
   "pages/cart/cart": "nav.cart",
   "pkg-tools/shopping/shopping": "nav.shopping",
   "pkg-discover/search/search": "nav.search",

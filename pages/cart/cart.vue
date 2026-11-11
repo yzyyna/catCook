@@ -1,14 +1,14 @@
 <template>
   <view class="page">
-    <template v-if="cartStore.items.length > 0">
-      <view class="header">
-        <text class="header-title">{{ t("cart.title") }}</text>
-        <view class="header-side">
-          <text class="header-count">{{ countText }}</text>
-          <lang-pill />
-        </view>
+    <view class="header">
+      <text class="header-title">{{ t("cart.title") }}</text>
+      <view class="header-side">
+        <text class="header-count">{{ countText }}</text>
+        <lang-pill />
       </view>
+    </view>
 
+    <template v-if="cartStore.items.length > 0">
       <scroll-view class="cart-list" scroll-y>
         <dish-card
           v-for="(item, itemIndex) in cartStore.items"
