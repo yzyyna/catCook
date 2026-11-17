@@ -18,6 +18,10 @@
       </view>
     </view>
 
+    <view v-if="!hasSearched" class="search-hint">
+      <text class="search-hint-text">{{ t("search.pinyinHint") }}</text>
+    </view>
+
     <scroll-view v-if="hasSearched" class="search-results" scroll-y>
       <template v-if="searchResults.length > 0">
         <view class="result-count">
@@ -368,5 +372,15 @@ onHide(() => {
 .result-count-text {
   font-size: 23rpx;
   color: var(--text-weak);
+}
+
+.search-hint {
+  padding: 14rpx 24rpx 0;
+}
+
+.search-hint-text {
+  font-size: 22rpx;
+  color: var(--text-weak);
+  word-break: break-word;
 }
 </style>

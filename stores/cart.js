@@ -69,9 +69,9 @@ export const useCartStore = defineStore("cart", {
       }
       syncCartBadge(this.totalCount);
     },
-    add(dish) {
+    add(dish, quantity = 1) {
       const wasInCart = this.items.some((item) => item.id === dish.id);
-      storage.addToCart(dish);
+      storage.addToCart(dish, quantity);
       this.load();
       // 用户已手动整理过勾选时，新加入的菜品默认勾选；重复加购不改变勾选态
       if (
@@ -91,6 +91,13 @@ export const useCartStore = defineStore("cart", {
     removeSelected() {
       this.selectionTouched = true;
       this.selectedIds.forEach((id) => storage.removeFromCart(id));
+      this.selectedIds = [];
+      this.load();
+    },
+    clear() {
+      // 一键清空：清空后视为用户已整理过勾选，避免下次载入又全选
+      this.selectionTouched = true;
+      storage.clearCart();
       this.selectedIds = [];
       this.load();
     },

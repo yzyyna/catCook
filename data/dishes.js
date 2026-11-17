@@ -171,7 +171,9 @@ const baseDishes = [
     name: "冬瓜排骨汤",
     image: "/static/images/dishes/dongguapaigu.jpg",
     description: "清淡鲜美，清热解暑",
-    practice: "排骨焯水，冬瓜切块，一起炖煮40分钟调味即可",
+    practice: "排骨焯水，冬瓜切块，一起炖煮40分钟调味即可",    tags: ["清淡养生", "消暑利湿", "四季煲汤"],
+    tips: "冬瓜切厚块耐炖不烂，出锅前15分钟放入最适宜",
+
     i18n: {
       name: { "zh-CN": "冬瓜排骨汤", "en-US": "Winter Melon Rib Soup" },
       description: {
@@ -182,7 +184,15 @@ const baseDishes = [
         "zh-CN": "排骨焯水，冬瓜切块，一起炖煮40分钟调味即可",
         "en-US":
           "Blanch the ribs, add winter melon chunks, then simmer for 40 minutes and season",
+      },      tags: {
+        "zh-CN": ["清淡养生", "消暑利湿", "四季煲汤"],
+        "en-US": ["Soothing", "Nourishing", "Comforting"],
       },
+      tips: {
+        "zh-CN": "冬瓜切厚块耐炖不烂，出锅前15分钟放入最适宜",
+        "en-US": "Cut winter melon into thick slices and add during the last 15 minutes so they soften without falling apart",
+      },
+
       time: { "zh-CN": "50分钟", "en-US": "50 min" },
       calories: { "zh-CN": "120千卡/100g", "en-US": "120 kcal/100g" },
     },

@@ -11,6 +11,15 @@
       <view class="body-card">
         <view class="title-row">
           <text class="dish-name">{{ getDishName(dish) }}</text>
+          <view v-if="dishTags.length > 0" class="tag-flow">
+            <view
+              v-for="(tag, tagIndex) in dishTags"
+              :key="tagIndex"
+              class="detail-tag"
+            >
+              <text class="detail-tag-text">{{ tag }}</text>
+            </view>
+          </view>
           <text class="dish-desc">{{ getDishDescription(dish) }}</text>
         </view>
 
@@ -35,32 +44,83 @@
         </view>
 
         <view class="section">
-          <text class="section-title">{{ t("dish.ingredients") }}</text>
+          <view class="section-header-row">
+            <text class="section-title">{{ t("dish.ingredients") }}</text>
+            <view class="servings-selector">
+              <text class="servings-label">{{ t("dish.servings") }}</text>
+              <view class="servings-group">
+                <view
+                  v-for="s in [1, 2, 4]"
+                  :key="s"
+                  class="servings-chip"
+                  :class="{ active: currentServings === s }"
+                  hover-class="hv-dim"
+                  :hover-stay-time="80"
+                  @click="setServings(s)"
+                >
+                  <text class="servings-chip-text">{{ s }}{{ t("dish.servingsUnit") }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
           <view class="ingredient-list">
             <view
-              v-for="(ingredient, index) in dish.ingredients"
+              v-for="(ingredient, index) in scaledIngredients"
               :key="index"
               class="ingredient-row"
             >
               <text class="ingredient-name">{{ ingredient.name }}</text>
-              <text class="ingredient-amount">{{ ingredient.amount }}</text>
+              <text class="ingredient-amount">{{ ingredient.scaledAmount }}</text>
             </view>
           </view>
         </view>
 
+        <view v-if="dishTips" class="chef-tips-card">
+          <view class="tips-header">
+            <text class="tips-icon">💡</text>
+            <text class="tips-title">{{ t("dish.chefTips") }}</text>
+          </view>
+          <text class="tips-content">{{ dishTips }}</text>
+        </view>
+
         <view class="section">
-          <text class="section-title">{{ t("dish.practice") }}</text>
+          <view class="section-header-row">
+            <text class="section-title">{{ t("dish.practice") }}</text>
+            <view v-if="completedStepIndices.length > 0" class="steps-progress-row">
+              <text class="steps-progress-text">
+                {{ completedStepIndices.length }}/{{ practiceSteps.length }} {{ t("dish.stepDone") }}
+              </text>
+              <text
+                class="steps-reset-btn"
+                hover-class="hv-dim"
+                :hover-stay-time="80"
+                @click="resetSteps"
+              >
+                {{ t("dish.resetSteps") }}
+              </text>
+            </view>
+          </view>
           <view class="step-list">
             <view
               v-for="(step, index) in practiceSteps"
               :key="index"
               class="step-row"
+              :class="{ completed: isStepDone(index) }"
+              hover-class="hv-dim"
+              :hover-stay-time="80"
+              @click="toggleStep(index)"
             >
-              <view class="step-number">
-                <text class="step-number-text">{{ index + 1 }}</text>
+              <view class="step-number" :class="{ done: isStepDone(index) }">
+                <text class="step-number-text">{{ isStepDone(index) ? "✓" : index + 1 }}</text>
               </view>
-              <text class="step-text">{{ step }}</text>
+              <text class="step-text" :class="{ done: isStepDone(index) }">{{ step }}</text>
             </view>
+          </view>
+          <view
+            v-if="practiceSteps.length > 0 && completedStepIndices.length === practiceSteps.length"
+            class="all-done-banner"
+          >
+            <text class="all-done-text">🎉 {{ t("dish.allStepsDone") }}</text>
           </view>
         </view>
 
@@ -117,12 +177,12 @@
         :hover-stay-time="80"
         @click="addToCart"
       >
-        <text class="cart-btn-text">{{ t("dish.addToCart") }}</text>
+        <text class="cart-btn-text">{{ addToCartText }}</text>
       </view>
       <view v-else class="cart-stepper cart-target">
         <quantity-stepper
           :quantity="quantityInCart"
-          @increase="addToCart"
+          @increase="increaseServings"
           @decrease="decreaseFromCart"
         />
       </view>
@@ -146,7 +206,7 @@
 import { ref, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { onLoad, onShow, onShareAppMessage } from "@dcloudio/uni-app";
-import { dataService, storage } from "@/data";
+import { dataService, storage, scaleAmount } from "@/data";
 import { useAppStore } from "@/stores/app";
 import { useCartStore } from "@/stores/cart";
 import { useFavoritesStore } from "@/stores/favorites";
@@ -156,7 +216,9 @@ import {
   getDishDescription,
   getDishName,
   getDishPractice,
+  getDishTags,
   getDishTime,
+  getDishTips,
 } from "@/utils/i18n";
 import { syncGlobalI18nUI } from "@/utils/ui";
 import { extractTouchPoint, measureViewportAnchor } from "@/utils/event";
@@ -168,12 +230,55 @@ const favoritesStore = useFavoritesStore();
 
 const routeDishId = ref(0);
 const flyRef = ref(null);
+const currentServings = ref(1);
+const completedStepIndices = ref([]);
 
 // 语言切换时立即按新语言重新本地化，无需离开页面
 const dish = computed(() => {
   void appStore.language;
   return dataService.getDishById(routeDishId.value);
 });
+
+const dishTags = computed(() => {
+  void appStore.language;
+  return dish.value ? getDishTags(dish.value) : [];
+});
+
+const dishTips = computed(() => {
+  void appStore.language;
+  return dish.value ? getDishTips(dish.value) : "";
+});
+
+const scaledIngredients = computed(() => {
+  if (!dish.value?.ingredients) return [];
+  return dish.value.ingredients.map((ing) => ({
+    ...ing,
+    scaledAmount: scaleAmount(ing.amount, currentServings.value),
+  }));
+});
+
+const setServings = (s) => {
+  currentServings.value = s;
+};
+
+const isStepDone = (index) => completedStepIndices.value.includes(index);
+
+const toggleStep = (index) => {
+  try {
+    uni.vibrateShort({ type: "light" });
+  } catch (e) {}
+  if (completedStepIndices.value.includes(index)) {
+    completedStepIndices.value = completedStepIndices.value.filter(
+      (i) => i !== index,
+    );
+  } else {
+    completedStepIndices.value = [...completedStepIndices.value, index];
+  }
+};
+
+const resetSteps = () => {
+  completedStepIndices.value = [];
+};
 
 const relatedDishes = computed(() => {
   void appStore.language;
@@ -218,12 +323,26 @@ const toggleFavorite = () => {
   });
 };
 
+// 按钮文案跟随所选份数，让"加购几份"在点击前就明确
+const addToCartText = computed(() => {
+  if (currentServings.value > 1) {
+    return `${t("dish.addToCart")} (${currentServings.value}${t("dish.servingsUnit")})`;
+  }
+  return t("dish.addToCart");
+});
+
+// 首次加购：按当前所选人份加入购物车，所见用量与购物车/采购清单口径一致
 const addToCart = (event) => {
   if (!dish.value) return;
-  cartStore.add(dish.value);
-  if (quantityInCart.value === 1) {
-    uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
-  }
+  cartStore.add(dish.value, currentServings.value);
+  uni.showToast({ title: t("cart.addedSuccess"), icon: "success" });
+  flyToCart(event);
+};
+
+// 已在购物车中：步进器每次只加 1 份
+const increaseServings = (event) => {
+  if (!dish.value) return;
+  cartStore.add(dish.value, 1);
   flyToCart(event);
 };
 
@@ -274,6 +393,8 @@ const goToDish = (item) => {
 
 onLoad((options) => {
   routeDishId.value = parseInt(options?.id) || 0;
+  currentServings.value = 1;
+  completedStepIndices.value = [];
   if (!dataService.getDishById(routeDishId.value)) {
     uni.showToast({ title: t("empty.loadFailed"), icon: "none" });
   }
@@ -635,5 +756,163 @@ onShareAppMessage(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 特色标签流 */
+.tag-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.detail-tag {
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  background-color: #fff0ee;
+}
+
+.detail-tag-text {
+  font-size: 21rpx;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 区块标题行（标题 + 右侧操作） */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-header-row .section-title {
+  margin-bottom: 0;
+}
+
+/* 份数选择器 */
+.servings-selector {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.servings-label {
+  font-size: 23rpx;
+  color: var(--text-weak);
+}
+
+.servings-group {
+  display: flex;
+  gap: 10rpx;
+}
+
+.servings-chip {
+  min-width: 76rpx;
+  height: 48rpx;
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  border: 2rpx solid #ece7e1;
+  background-color: #fff;
+}
+
+.servings-chip.active {
+  border-color: transparent;
+  background: var(--gradient-primary);
+  box-shadow: 0 6rpx 14rpx rgba(255, 107, 107, 0.28);
+}
+
+.servings-chip-text {
+  font-size: 23rpx;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.servings-chip.active .servings-chip-text {
+  color: #fff;
+}
+
+/* 大厨秘诀卡片 */
+.chef-tips-card {
+  margin-top: 20rpx;
+  padding: 26rpx 28rpx;
+  border-radius: var(--radius-card);
+  background-color: #fff8ec;
+  border-left: 8rpx solid #f0a93b;
+  box-shadow: var(--shadow-card);
+}
+
+.tips-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 12rpx;
+}
+
+.tips-icon {
+  font-size: 30rpx;
+}
+
+.tips-title {
+  font-size: 27rpx;
+  font-weight: 700;
+  color: #d98a12;
+}
+
+.tips-content {
+  font-size: 25rpx;
+  color: var(--text-normal);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+/* 步骤打卡进度 */
+.steps-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.steps-progress-text {
+  font-size: 23rpx;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.steps-reset-btn {
+  font-size: 23rpx;
+  color: var(--text-weak);
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background-color: #f7f3ef;
+}
+
+.step-text.done {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.step-number.done {
+  background: linear-gradient(135deg, #7ac97a, #4fb36a);
+  box-shadow: 0 4rpx 12rpx rgba(79, 179, 106, 0.3);
+}
+
+.all-done-banner {
+  margin-top: 20rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  background-color: #edf7ef;
+  text-align: center;
+}
+
+.all-done-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #3f9c5f;
 }
 </style>

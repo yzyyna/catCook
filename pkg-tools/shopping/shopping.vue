@@ -54,6 +54,13 @@
             <text class="group-title">{{
               getIngredientCategoryName(group.category)
             }}</text>
+            <text
+              v-if="groupCheckedCount(group) > 0"
+              class="group-progress"
+              :class="{ done: groupCheckedCount(group) === group.items.length }"
+            >
+              {{ groupCheckedCount(group) }}/{{ group.items.length }}
+            </text>
             <text class="group-count">{{ group.items.length }}</text>
           </view>
           <view
@@ -192,6 +199,10 @@ const progressText = computed(() =>
 );
 
 const isChecked = (key) => checkedKeys.value.includes(key);
+
+// 分组已购进度：随勾选实时更新
+const groupCheckedCount = (group) =>
+  group.items.filter((item) => checkedKeys.value.includes(item.key)).length;
 
 const resetChecked = () => {
   checkedKeys.value = [];
@@ -591,5 +602,19 @@ onShareAppMessage(() => ({
 
 .share-btn::after {
   border: none;
+}
+
+.group-progress {
+  padding: 2rpx 12rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: var(--primary);
+  background-color: #fff0ee;
+  border-radius: 999rpx;
+}
+
+.group-progress.done {
+  color: #fff;
+  background: linear-gradient(135deg, #7ac97a, #4fb36a);
 }
 </style>

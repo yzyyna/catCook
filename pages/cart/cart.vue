@@ -4,6 +4,14 @@
       <text class="header-title">{{ t("cart.title") }}</text>
       <view class="header-side">
         <text class="header-count">{{ countText }}</text>
+        <text
+          v-if="cartStore.items.length > 0"
+          class="header-clear"
+          hover-class="hv-dim"
+          :hover-stay-time="80"
+          @click="clearCart"
+          >{{ t("cart.clearCart") }}</text
+        >
         <lang-pill />
       </view>
     </view>
@@ -134,8 +142,7 @@ const deleteSelected = () => {
   if (cartStore.selectedCount === 0) {
     uni.showToast({ title: t("common.selectFirst"), icon: "none" });
     return;
-  }
-  uni.showModal({
+  }  uni.showModal({
     title: t("common.confirm"),
     content: t("cart.deleteSelectedConfirm"),
     confirmText: t("common.confirm"),
@@ -152,9 +159,24 @@ const deleteSelected = () => {
   });
 };
 
+// 一键清空购物车：二次确认后清空
+const clearCart = () => {
+  uni.showModal({
+    title: t("common.confirm"),
+    content: t("cart.clearConfirm"),
+    confirmText: t("common.confirm"),
+    cancelText: t("common.cancel"),
+    success: (res) => {
+      if (res.confirm) {
+        cartStore.clear();
+        uni.showToast({ title: t("cart.clearedSuccess"), icon: "success" });
+      }
+    },
+  });
+};
+
 const generateShoppingList = () => {
-  if (cartStore.selectedCount === 0) {
-    uni.showToast({ title: t("common.selectFirst"), icon: "none" });
+  if (cartStore.selectedCount === 0) {    uni.showToast({ title: t("common.selectFirst"), icon: "none" });
     return;
   }
   uni.navigateTo({
@@ -330,5 +352,13 @@ onShow(() => {
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
+}
+
+.header-clear {
+  font-size: 23rpx;
+  color: var(--text-weak);
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  background-color: #f7f3ef;
 }
 </style>

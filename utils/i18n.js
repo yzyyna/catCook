@@ -76,6 +76,37 @@ export function getDishCalories(dish) {
   return dish.calories || "";
 }
 
+export function getDishTips(dish) {
+  if (!dish) return "";
+  if (dish.i18n?.tips) return resolveLocalizedValue(dish.i18n.tips);
+  return dish.tips || "";
+}
+
+const DEFAULT_CATEGORY_TAGS = {
+  1: { "zh-CN": ["家常风味", "下饭必备"], "en-US": ["Home-style", "Comforting"] },
+  2: { "zh-CN": ["经典肉香", "高蛋白"], "en-US": ["Savory Meat", "High Protein"] },
+  3: { "zh-CN": ["鲜美海味", "原汁原味"], "en-US": ["Fresh Seafood", "Flavorful"] },
+  4: { "zh-CN": ["清爽少油", "健康素食"], "en-US": ["Clean Veggie", "Healthy"] },
+  5: { "zh-CN": ["养生煲汤", "温润滋补"], "en-US": ["Warm Soup", "Nourishing"] },
+  6: { "zh-CN": ["甜蜜烘焙", "精致点心"], "en-US": ["Sweet Treat", "Dessert"] },
+  7: { "zh-CN": ["元气快手", "营养早餐"], "en-US": ["Quick Morning", "Breakfast"] },
+  8: { "zh-CN": ["风味特调", "清凉解腻"], "en-US": ["Specialty Drink", "Refreshing"] },
+};
+
+export function getDishTags(dish) {
+  if (!dish) return [];
+  if (dish.i18n?.tags) {
+    const localized = resolveLocalizedValue(dish.i18n.tags);
+    if (Array.isArray(localized) && localized.length > 0) return localized;
+  }
+  if (Array.isArray(dish.tags) && dish.tags.length > 0) return dish.tags;
+  const catTags = DEFAULT_CATEGORY_TAGS[dish.categoryId];
+  if (catTags) {
+    return resolveLocalizedValue(catTags) || [];
+  }
+  return [];
+}
+
 export function getIngredientName(ingredient) {
   if (!ingredient) return "";
   if (ingredient.i18n?.name) {

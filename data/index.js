@@ -1,5 +1,6 @@
 import { dishes } from "./dishes.js";
 import { categories } from "./categories.js";
+import { matchDishes } from "./search.js";
 import { t } from "../utils/i18n.js";
 import {
   getDishCalories,
@@ -7,7 +8,9 @@ import {
   getDishIngredients,
   getDishName,
   getDishPractice,
+  getDishTags,
   getDishTime,
+  getDishTips,
 } from "../utils/i18n.js";
 
 const STORAGE_KEYS = {
@@ -37,16 +40,18 @@ export const storage = {
     }
   },
 
-  addToCart(dish) {
+  addToCart(dish, quantity = 1) {
+    // quantity 为本次加入的份数（详情页按所选人份加入，其余入口默认 1）
+    const amount = Math.max(1, Math.floor(quantity) || 1);
     const cart = this.getCart();
     const existingIndex = cart.findIndex((item) => item.id === dish.id);
 
     if (existingIndex !== -1) {
-      cart[existingIndex].quantity += 1;
+      cart[existingIndex].quantity += amount;
     } else {
       cart.push({
         ...dish,
-        quantity: 1,
+        quantity: amount,
         addTime: new Date().getTime(),
       });
     }
@@ -250,31 +255,8 @@ export const dataService = {
   },
 
   searchDishes(keyword) {
-    const lowerKeyword = keyword.toLowerCase();
-    return dishes
-      .filter((dish) => {
-        // 双语全域检索：无论当前处于何种语言，搜中文或英文名/食材/做法均能命中
-        const pool = [
-          dish.name,
-          dish.description,
-          dish.practice,
-          dish.i18n?.name?.["zh-CN"],
-          dish.i18n?.name?.["en-US"],
-          dish.i18n?.description?.["zh-CN"],
-          dish.i18n?.description?.["en-US"],
-          dish.i18n?.practice?.["zh-CN"],
-          dish.i18n?.practice?.["en-US"],
-          ...dish.ingredients.flatMap((ing) => [
-            ing.name,
-            ing.i18n?.name?.["zh-CN"],
-            ing.i18n?.name?.["en-US"],
-          ]),
-        ];
-        return pool
-          .filter(Boolean)
-          .some((text) => String(text).toLowerCase().includes(lowerKeyword));
-      })
-      .map(localizeDish);
+    // 相关度排序 + 中英文/拼音首字母命中，统一返回本地化结果
+    return matchDishes(dishes, keyword).map(localizeDish);
   },
 
   getIngredientSummary(cartItems) {
@@ -322,7 +304,7 @@ export const dataService = {
   },
 };
 
-export { dishes, categories };
+export { dishes, categories, scaleAmount };
 
 // 用量按份数放大：只处理「数字 + 单位」（如 500g、2勺、110ml），
 // 「适量 / 少许」等模糊用量原样返回，无法解析时也原样返回避免丢信息
@@ -362,6 +344,8 @@ function localizeDish(dish) {
     ingredients: getDishIngredients(dish),
     time: getDishTime(dish),
     calories: getDishCalories(dish),
+    tips: getDishTips(dish),
+    tags: getDishTags(dish),
   };
 }
 

@@ -51,8 +51,10 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 │   └── fly-ball/           #   加购抛物线动画
 ├── data/                   # 数据层（无后端，纯本地）
 │   ├── dishes.js           #   菜品数据：基础 9 道（带实拍图）+ 拼接 moreDishes
-│   ├── dishes-extra.js     #   扩充菜谱 42 道（纯文本数据，双语文真实食谱）
+│   ├── dishes-extra.js     #   扩充菜谱 67 道（纯文本数据，双语文真实食谱）
 │   ├── categories.js       #   分类静态数据（nameKey 走语言包）
+│   ├── pinyin.js           #   拼音首字母映射（菜名 + 食材，纯静态零依赖）
+│   ├── search.js           #   检索与相关度排序（纯函数，不依赖 i18n 实例）
 │   └── index.js            #   storage（本地存储服务）+ dataService（数据服务）
 ├── stores/                 # Pinia（运行时唯一事实源，storage 为持久层）
 │   ├── index.js            #   createPinia 实例
@@ -80,7 +82,8 @@ catCook（家庭菜单）是一个面向家庭协作的**微信小程序**，基
 ### 分层职责
 
 - **页面（pages/\*/pkg-\*/\*）**：只做展示与交互，通过 `dataService`/`storage` 读写数据，不直接操作 `uni.*Storage*`。
-- **dataService（data/index.js）**：静态数据查询——`getCategories()`、`getAllDishes()`、`getCategoryCounts()`、`getDishesByCategory(id)`、`getDishById(id)`、`searchDishes(keyword)`、`getIngredientSummary(cartItems)`（食材汇总核心算法）、`generateShareData(cartItems)`。返回的菜品经 `localizeDish()` 按当前语言本地化。
+- **dataService（data/index.js）**：静态数据查询——`getCategories()`、`getAllDishes()`、`getCategoryCounts()`、`getDishesByCategory(id)`、`getDishById(id)`、`searchDishes(keyword)`（转调 `data/search.js` 的 `matchDishes`，含拼音首字母命中与相关度排序）、`getIngredientSummary(cartItems)`（食材汇总核心算法）、`generateShareData(cartItems)`。返回的菜品经 `localizeDish()` 按当前语言本地化。
+- **拼音检索（data/pinyin.js + data/search.js）**：菜名与食材的中文→拼音首字母静态映射，支持输入 `hsr` 命中红烧肉；检索打分字段权重：菜名精确 > 英文名精确 > 菜名前缀 > 英文名前缀 > 菜名包含 > 拼音精确/前缀 > 食材 > 描述 > 做法 > 秘诀 > 标签。新增菜品时需同步在 `DISH_PINYIN` 补映射（每个汉字一个字母），映射表长度必须等于汉字数。
 - **storage（data/index.js）**：本地存储 CRUD——购物车/收藏/浏览历史/搜索历史。读取时经 `normalizeDishRecord()` 用 `dishes.js` 源数据回填并本地化，保证存储数据与静态数据同步。
 - **Pinia stores**：`stores/cart.js`（items + selectedIds，变更即写回 storage）、`stores/favorites.js`、`stores/app.js`（语言）。页面 `onShow` 调 `load()` 按当前语言重新归一化。
 
@@ -134,7 +137,8 @@ i18n 采用**三种机制并存**，修改数据或文案时必须分清：
 
 ## 已知问题与注意事项
 
-- 菜品共 51 道：`dishes.js` 基础 9 道带实拍图，`dishes-extra.js` 42 道为纯文本数据（无图），由 `dish-cover` 组件显示分类渐变 + emoji 兜底封面；新增无图菜品时带 `emoji` 字段即可。
+- 菜品共 76 道：`dishes.js` 基础 9 道带实拍图，`dishes-extra.js` 67 道为纯文本数据（无图），由 `dish-cover` 组件显示分类渐变 + emoji 兜底封面；新增无图菜品时带 `emoji` 字段即可。
+- 菜品的 `tips`（大厨秘诀）与 `tags`（特色标签）均为可选字段，`getDishTips()` / `getDishTags()` 读取；`tags` 缺失时按分类回退默认标签。
 - 项目无单元测试、无 lint 配置；验证方式为在微信开发者工具/H5 中手动回归：选菜 → 加购 → 生成清单 → 分享/复制，以及切换语言后全页面文案刷新。
 - 微信分享通过 `onShareAppMessage` 实现（首页/详情/采购清单）；采购清单还支持"复制文本"兜底。采购清单页的 `uni.share` 按钮仅 App 端可用，代码已加 `typeof` 守卫，其余端直接走复制文本。
 - 采购清单严格按购物车选中项生成；购物车与首页结算条均有"未选择"守卫，未勾选时引导回购物车。
@@ -144,4 +148,4 @@ i18n 采用**三种机制并存**，修改数据或文案时必须分清：
 
 1. 改功能前先读 [DESIGN.md](DESIGN.md) 对应章节，保持与设计文档一致；设计变更需同步更新 DESIGN.md。
 2. 数据相关改动集中在 `data/`，不要在页面里散落存储逻辑。
-3. 提交前自查：中英文案是否成对、`PAGE_TITLE_MAP`/tabBar 映射是否同步、新页面是否注册进 pages.json。
+3. 提交前自查：中英文案是否成对、`PAGE_TITLE_MAP`/tabBar 映射是否同步、新页面是否注册进 pages.json；新增菜品是否补齐 `i18n` 块、`difficultyKey`、`emoji` 与拼音首字母映射。
